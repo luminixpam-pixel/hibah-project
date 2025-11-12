@@ -45,9 +45,10 @@
     <div class="login-card">
         <img src="{{ asset('image/logo.png') }}" alt="Logo E-Hibah">
         <br>
-        <button class="btn-login" onclick="window.location.href='{{ route('filament.admin.auth.login') }}'">
+        <button class="btn-login" onclick="window.location.href='{{ route('login') }}'">
             Masuk
         </button>
+
     </div>
 </body>
 </html>
