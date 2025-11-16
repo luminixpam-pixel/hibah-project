@@ -107,10 +107,6 @@
              Masuk
             </button>
             <form method="POST" action="{{ route('login.post') }}">
-
-
-
-
         </form>
     </div>
 </body>

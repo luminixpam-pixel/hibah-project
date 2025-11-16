@@ -24,3 +24,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/update', [DashboardController::class, 'updateProfile'])->name('dashboard.updateProfile');
 });
+
+// Monitoring & Data → Kalender Timeline
+Route::get('/timeline', function () {
+    return view('timeline');
+})->name('timeline');
+
+Route::get('/monitoring-data', function () {
+    return view('monitoring.index');
+})->name('monitoring.data');
+
+Route::get('/monitoring/data', function () {
+    return view('monitoring.data');
+})->name('monitoring.data');
+
+Route::get('/monitoring-data', function () {
+    return view('monitoring-data');
+})->name('monitoring.data');
+
+
