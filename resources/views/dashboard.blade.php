@@ -3,21 +3,10 @@
 @section('content')
 <div class="container mt-4">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <!-- Tombol Ajukan Proposal -->
-            <button id="openPopupBtn" class="btn btn-success">
-                Ajukan Proposal
-            </button>
-
-        </div>
-    </div>
-
     {{-- =======================
         CSS POPUP
     ======================== --}}
     <style>
-        /* Overlay */
         .popup-overlay {
             display: none;
             position: fixed;
@@ -32,100 +21,149 @@
             z-index: 9999;
         }
 
-        /* Isi Popup */
         .popup-content {
             background: #fff;
             padding: 25px;
             border-radius: 12px;
-            width: 430px;
+            width: 480px;
             position: relative;
             box-shadow: 0 8px 30px rgba(0,0,0,0.2);
             transform: scale(0.8);
             opacity: 0;
-            transition: 0.25s ease;
+            transition: .25s ease;
         }
 
-        /* Efek muncul */
         .popup-overlay.active .popup-content {
             transform: scale(1);
             opacity: 1;
         }
 
-        /* Tombol close X */
         .close-popup {
             position: absolute;
-            top: 12px;
+            top: 10px;
             right: 15px;
             font-size: 25px;
-            cursor: pointer;
-            color: #444;
             font-weight: bold;
+            cursor: pointer;
+            color: #555;
         }
-        .close-popup:hover {
-            color: red;
-        }
-
+        .close-popup:hover { color: red; }
     </style>
 
     {{-- =======================
-        POPUP FORM AJUKAN PROPOSAL
+        TOMBOL AJUKAN PROPOSAL
+    ======================== --}}
+    <button id="openPopupBtn" class="btn btn-success mb-3">
+        Ajukan Proposal
+    </button>
+
+    {{-- =======================
+            POPUP FORM
     ======================== --}}
     <div id="proposalPopup" class="popup-overlay">
         <div class="popup-content">
             <span class="close-popup" id="closePopupBtn">&times;</span>
 
-            <form>
+            <form action="{{ route('proposal.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+
+                <div class="mb-3">
+                    <label class="form-label">Nama Ketua</label>
+                    <input type="text" name="nama_ketua" class="form-control" required placeholder="Masukkan nama ketua">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Anggota</label>
+
+                    <div id="anggota-container">
+                        <div class="d-flex gap-2 mb-2 anggota-row">
+                            <input type="text" name="anggota[]" class="form-control" placeholder="Masukkan nama anggota">
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-sm btn-primary mt-2" id="addAnggotaBtn">
+                        + Tambah Anggota
+                    </button>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Biaya</label>
+                    <input type="text" name="biaya" class="form-control" placeholder="Masukkan biaya">
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label">Judul Proposal</label>
-                    <input type="text" class="form-control" placeholder="Masukkan judul proposal">
+                    <input type="text" name="judul" class="form-control" placeholder="Masukkan judul proposal">
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">File Proposal (PDF)</label>
-                    <input type="file" class="form-control">
+                    <label class="form-label">File Proposal</label>
+                    <input type="file" name="file" class="form-control">
                 </div>
 
-                <button type="submit" class="btn btn-success w-100">
-                    Unggah Proposal
+                <button class="btn btn-success w-100" type="submit">
+                    Kirim Proposal
                 </button>
             </form>
         </div>
     </div>
 
     {{-- =======================
-        JAVASCRIPT POPUP
+        SCRIPT POPUP + ANGGOTA DINAMIS
     ======================== --}}
     <script>
         document.addEventListener("DOMContentLoaded", function () {
 
-            const openPopupBtn  = document.getElementById("openPopupBtn");
-            const closePopupBtn = document.getElementById("closePopupBtn");
-            const proposalPopup = document.getElementById("proposalPopup");
+            // === Script Popup ===
+            const openBtn = document.getElementById("openPopupBtn");
+            const closeBtn = document.getElementById("closePopupBtn");
+            const popup = document.getElementById("proposalPopup");
 
-            // Buka Popup
-            openPopupBtn.addEventListener("click", function () {
-                proposalPopup.style.display = "flex";
-                setTimeout(() => proposalPopup.classList.add("active"), 10);
+            openBtn.addEventListener("click", () => {
+                popup.style.display = "flex";
+                setTimeout(() => popup.classList.add("active"), 10);
             });
 
-            // Tutup Popup pakai tombol X
-            closePopupBtn.addEventListener("click", function () {
-                proposalPopup.classList.remove("active");
-                setTimeout(() => proposalPopup.style.display = "none", 250);
+            closeBtn.addEventListener("click", () => {
+                popup.classList.remove("active");
+                setTimeout(() => popup.style.display = "none", 250);
             });
 
-            // Tutup ketika klik di luar popup
-            proposalPopup.addEventListener("click", function (e) {
-                if (e.target === proposalPopup) {
-                    proposalPopup.classList.remove("active");
-                    setTimeout(() => proposalPopup.style.display = "none", 250);
+            popup.addEventListener("click", (e) => {
+                if (e.target === popup) {
+                    popup.classList.remove("active");
+                    setTimeout(() => popup.style.display = "none", 250);
                 }
             });
+
+
+            // === Script Tambah/Hapus Anggota ===
+            const anggotaContainer = document.getElementById("anggota-container");
+            const addBtn = document.getElementById("addAnggotaBtn");
+
+            addBtn.addEventListener("click", function () {
+                const div = document.createElement("div");
+                div.classList.add("d-flex", "gap-2", "mb-2", "anggota-row");
+
+                div.innerHTML = `
+                    <input type="text" name="anggota[]" class="form-control" placeholder="Masukkan nama anggota">
+                    <button type="button" class="btn btn-danger btn-sm remove-anggota">Hapus</button>
+                `;
+
+                anggotaContainer.appendChild(div);
+            });
+
+            document.addEventListener("click", function (e) {
+                if (e.target.classList.contains("remove-anggota")) {
+                    e.target.parentElement.remove();
+                }
+            });
+
         });
     </script>
 
     {{-- =======================
-        KONTEN LAIN (Tanpa perubahan)
+        KONTEN DASBOR
     ======================== --}}
     <div class="row g-3 mb-4">
         <div class="col-md-3">
@@ -152,23 +190,25 @@
                 <h4>0</h4>
             </div>
         </div>
-         <div class="col-md-3">
+        <div class="col-md-3">
             <div class="card text-center p-3">
                 <h6>Hasil Revisi</h6>
                 <h4>0</h4>
             </div>
-        </div> <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
             <div class="card text-center p-3">
                 <h6>Proposal perlu Direwiew</h6>
                 <h4>0</h4>
             </div>
-        </div> <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
             <div class="card text-center p-3">
                 <h6>Proposal sedang Direwiew</h6>
                 <h4>0</h4>
             </div>
         </div>
-         <div class="col-md-3">
+        <div class="col-md-3">
             <div class="card text-center p-3">
                 <h6>Review selesai</h6>
                 <h4>0</h4>

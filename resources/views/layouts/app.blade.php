@@ -20,16 +20,16 @@
         }
 
         /* Navbar */
-        .navbar-custom {
+        #mainNavbar.navbar-custom {
             background-color: #1fbd4c;
         }
-        .navbar-custom .nav-link,
-        .navbar-custom .navbar-brand {
+        #mainNavbar .nav-link,
+        #mainNavbar .navbar-brand {
             color: #fff !important;
         }
 
         /* Content */
-        .content-wrapper {
+        #mainContent.content-wrapper {
             padding: 20px;
             backdrop-filter: blur(10px);
             background-color: rgba(255,255,255,0.8);
@@ -38,8 +38,6 @@
         }
 
         /* -------- NOTIFICATION POPUP -------- */
-
-        /* Overlay tanpa meredup */
         .notif-popup-overlay {
             position: fixed;
             top: 0;
@@ -50,10 +48,10 @@
             justify-content: center;
             align-items: flex-start;
             padding-top: 80px;
+            background: rgba(0,0,0,0.15);
             z-index: 3000;
         }
 
-        /* Box popup */
         .notif-popup {
             width: 420px;
             max-height: 70vh;
@@ -99,12 +97,22 @@
             color: gray;
         }
 
-        .notif-footer .see-all {
+        .notif-expand {
+            cursor: pointer;
+            font-size: 1.1rem;
             color: #1fbd4c;
-            font-weight: 600;
-            text-decoration: none;
         }
 
+        .notif-popup.large {
+            width: 650px !important;
+            max-height: 85vh !important;
+        }
+
+        /* Background blur */
+        .blur-active {
+            filter: blur(6px);
+            transition: 0.2s ease-in-out;
+        }
     </style>
 
     @stack('styles')
@@ -113,7 +121,7 @@
 <body>
 
     {{-- NAVBAR --}}
-    <nav class="navbar navbar-expand-lg navbar-custom shadow-sm">
+    <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-custom shadow-sm">
         <div class="container-fluid px-4">
             <a class="navbar-brand fw-semibold">E-Hilbah</a>
 
@@ -130,54 +138,57 @@
                         </a>
                     </li>
 
-                    {{-- 🔔 NOTIFICATION ICON --}}
+                    {{-- NOTIFICATION ICON --}}
                     <li class="nav-item">
                         <a id="notifBell" class="nav-link" style="cursor:pointer;">
                             <i class="bi bi-bell fs-4"></i>
                         </a>
                     </li>
 
-                    {{-- USER DROPDOWN --}}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown"
-                            role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ Auth::user()->name ?? 'Pengguna' }}
-                        </a>
+                    {{-- USER --}}
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> {{ Auth::user()->name ?? 'Pengguna' }}
+                    </a>
 
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item">Profil</a></li>
-
-                            <li>
-                                <form action="{{ route('logout') }}" method="POST">
-                                    @csrf
-                                    <button class="dropdown-item text-danger" type="submit">Logout</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{{ route('profile.show') }}">
+                                Profil
+                            </a>
+                        </li>
+                        <li>
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button class="dropdown-item text-danger" type="submit">Logout</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
 
                 </ul>
             </div>
         </div>
     </nav>
 
-
     {{-- CONTENT --}}
-    <div class="container content-wrapper">
+    <div id="mainContent" class="container content-wrapper">
         @yield('content')
     </div>
 
-
     {{-- NOTIFICATION POPUP --}}
     <div id="notifPopup" class="notif-popup-overlay">
-        <div class="notif-popup">
+        <div id="notifBox" class="notif-popup">
 
             <div class="notif-header">
                 <h5 class="m-0 fw-bold">Notifikasi</h5>
-                <span class="mark-read">Sudah dibaca semua</span>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="notif-expand"><i class="bi bi-arrows-fullscreen"></i></span>
+                    <span id="markRead" class="mark-read">Sudah dibaca semua</span>
+                </div>
             </div>
 
-            <div class="notif-list">
+            <div id="notifList" class="notif-list">
                 <div class="notif-item">
                     <div class="notif-title">Anda telah berhasil mengajukan Pengumpulan Proposal</div>
                     <div class="notif-time">4 hari yang lalu</div>
@@ -194,37 +205,58 @@
                 </div>
             </div>
 
-            <div class="notif-footer text-center mt-2">
-                <a class="see-all">Lihat semua notifikasi</a>
-            </div>
         </div>
     </div>
 
+    {{-- SCRIPT --}}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
 
-    {{-- JS --}}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    const notifBell = document.getElementById("notifBell");
+    const notifPopup = document.getElementById("notifPopup");
+    const notifBox = document.getElementById("notifBox");
+    const markRead = document.getElementById("markRead");
+    const notifList = document.getElementById("notifList");
+    const expandBtn = document.querySelector(".notif-expand");
 
-    <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    const navbar = document.getElementById("mainNavbar");
+    const content = document.getElementById("mainContent");
 
-        const notifBell = document.getElementById("notifBell");
-        const notifPopup = document.getElementById("notifPopup");
+    // Buka popup
+    notifBell.addEventListener("click", () => {
+        notifPopup.style.display = "flex";
 
-        // Buka popup
-        notifBell.addEventListener("click", (e) => {
-            e.preventDefault();
-            notifPopup.style.display = "flex";
-        });
-
-        // Tutup popup kalau klik area luar
-        notifPopup.addEventListener("click", (e) => {
-            if (e.target === notifPopup) {
-                notifPopup.style.display = "none";
-            }
-        });
-
+        navbar.classList.add("blur-active");
+        content.classList.add("blur-active");
     });
-    </script>
+
+    // Tutup popup kalau klik area luar
+    notifPopup.addEventListener("click", (e) => {
+        if (e.target === notifPopup) {
+            notifPopup.style.display = "none";
+
+            navbar.classList.remove("blur-active");
+            content.classList.remove("blur-active");
+        }
+    });
+
+    // Tombol "Sudah dibaca semua"
+    markRead.addEventListener("click", () => {
+        notifList.innerHTML = `<div class="text-center text-secondary py-3">Tidak ada notifikasi.</div>`;
+        markRead.textContent = "Tidak ada notifikasi";
+        markRead.style.color = "gray";
+        markRead.style.cursor = "default";
+    });
+
+    // Toggle perbesar
+    expandBtn.addEventListener("click", () => {
+        notifBox.classList.toggle("large");
+    });
+
+});
+</script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     @stack('scripts')
 </body>

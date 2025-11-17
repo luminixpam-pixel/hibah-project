@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProposalController;
+
 
 // Halaman utama diarahkan ke login
 Route::get('/', function () {
@@ -23,6 +25,8 @@ Route::get('/password/reset', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/update', [DashboardController::class, 'updateProfile'])->name('dashboard.updateProfile');
+    Route::post('/proposal/store', [App\Http\Controllers\ProposalController::class, 'store'])->name('proposal.store');
+
 });
 
 // Monitoring & Data → Kalender Timeline
@@ -41,5 +45,21 @@ Route::get('/monitoring/data', function () {
 Route::get('/monitoring-data', function () {
     return view('monitoring-data');
 })->name('monitoring.data');
+
+//upload proposal
+Route::get('/proposal/create', [ProposalController::class, 'create'])->name('proposal.create');
+Route::post('/proposal/store', [ProposalController::class, 'store'])->name('proposal.store');
+Route::get('/proposal', [ProposalController::class, 'index'])->name('proposal.index');
+Route::get('/proposal/download/{id}', [ProposalController::class, 'download'])->name('proposal.download');
+
+// PROFILE
+Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
+Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+
+//PROPOSAL
+Route::get('/daftar-proposal', function () {
+    return view('proposal.daftar-proposal');
+});
 
 
