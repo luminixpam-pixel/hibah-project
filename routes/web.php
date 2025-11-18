@@ -62,4 +62,7 @@ Route::get('/daftar-proposal', function () {
     return view('proposal.daftar-proposal');
 });
 
+Route::get('/monitoring/kalender', function () {
+    return view('monitoring.data');
+})->name('monitoring.kalender');
 

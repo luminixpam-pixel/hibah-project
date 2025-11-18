@@ -29,6 +29,7 @@ class DashboardController extends Controller
             'jabatan' => 'nullable|string|max:100',
         ]);
 
+        /** @var \App\Models\User $user */
         $user->update($request->only([
             'name',
             'nidn',

@@ -28,6 +28,22 @@
             color: #fff !important;
         }
 
+        /* Navbar item kiri */
+        #mainNavbar .navbar-left {
+            margin-right: auto;
+        }
+
+        /* Samakan ukuran semua menu (ikon & teks) */
+        #mainNavbar .nav-link {
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        #mainNavbar .nav-link i {
+            font-size: 1.3rem;
+        }
+
         /* Content */
         #mainContent.content-wrapper {
             padding: 20px;
@@ -123,63 +139,80 @@
     {{-- NAVBAR --}}
     <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-custom shadow-sm">
         <div class="container-fluid px-4">
-            <a class="navbar-brand fw-semibold">E-Hilbah</a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <a class="navbar-brand fw-semibold me-4">E-Hilbah</a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
                 <span class="navbar-toggler-icon text-white"></span>
             </button>
 
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
+            <div class="collapse navbar-collapse" id="navbarContent">
 
+                {{-- Menu kiri --}}
+                <ul class="navbar-nav navbar-left">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('monitoring.data') }}">
-                            <i class="bi bi-bar-chart"></i> Monitoring & Data
+                        <a class="nav-link" href="{{ route('dashboard') }}">
+                            <i class="bi bi-house-door"></i> Dashboard
                         </a>
                     </li>
 
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="monitoringDropdown" data-bs-toggle="dropdown">
+                            <i class="bi bi-bar-chart"></i> Monitoring & Data
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="monitoringDropdown">
+                            <li><a class="dropdown-item" href="#">Daftar Proposal Hibah</a></li>
+                            <li><a class="dropdown-item" href="#">Monev Internal</a></li>
+                            <li><a class="dropdown-item" href="#">Monitoring Pelaksanaan</a></li>
+                            <li><a class="dropdown-item" href="#">Laporan Akhir</a></li>
+                            <!-- Tambahkan menu Kalender -->
+                            <li><a class="dropdown-item" href="{{ route('monitoring.kalender') }}">Kalender</a></li>
+                        </ul>
+                    </li>
+                </ul>
+
+                {{-- Menu kanan --}}
+                <ul class="navbar-nav ms-auto">
                     {{-- NOTIFICATION ICON --}}
                     <li class="nav-item">
                         <a id="notifBell" class="nav-link" style="cursor:pointer;">
-                            <i class="bi bi-bell fs-4"></i>
+                            <i class="bi bi-bell"></i>
                         </a>
                     </li>
 
                     {{-- USER --}}
-                  <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle"></i> {{ Auth::user()->name ?? 'Pengguna' }}
-                    </a>
-
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="{{ route('profile.show') }}">
-                                Profil
-                            </a>
-                        </li>
-                        <li>
-                            <form action="{{ route('logout') }}" method="POST">
-                                @csrf
-                                <button class="dropdown-item text-danger" type="submit">Logout</button>
-                            </form>
-                        </li>
-                    </ul>
-                </li>
-
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ Auth::user()->name ?? 'Pengguna' }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{{ route('profile.show') }}">
+                                    Profil
+                                </a>
+                            </li>
+                            <li>
+                                <form action="{{ route('logout') }}" method="POST">
+                                    @csrf
+                                    <button class="dropdown-item text-danger" type="submit">Logout</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
+
             </div>
         </div>
     </nav>
 
     {{-- CONTENT --}}
-    <div id="mainContent" class="container content-wrapper">
+    <div id="mainContent" class="container content-wrapper mt-3">
         @yield('content')
     </div>
 
     {{-- NOTIFICATION POPUP --}}
     <div id="notifPopup" class="notif-popup-overlay">
         <div id="notifBox" class="notif-popup">
-
             <div class="notif-header">
                 <h5 class="m-0 fw-bold">Notifikasi</h5>
                 <div class="d-flex align-items-center gap-3">
@@ -187,77 +220,64 @@
                     <span id="markRead" class="mark-read">Sudah dibaca semua</span>
                 </div>
             </div>
-
             <div id="notifList" class="notif-list">
                 <div class="notif-item">
                     <div class="notif-title">Anda telah berhasil mengajukan Pengumpulan Proposal</div>
                     <div class="notif-time">4 hari yang lalu</div>
                 </div>
-
                 <div class="notif-item">
                     <div class="notif-title">Proposal Anda sedang direview</div>
                     <div class="notif-time">2 hari yang lalu</div>
                 </div>
-
                 <div class="notif-item">
                     <div class="notif-title">Proposal Anda telah disetujui 🎉</div>
                     <div class="notif-time">1 jam yang lalu</div>
                 </div>
             </div>
-
         </div>
     </div>
 
     {{-- SCRIPT --}}
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const notifBell = document.getElementById("notifBell");
+        const notifPopup = document.getElementById("notifPopup");
+        const notifBox = document.getElementById("notifBox");
+        const markRead = document.getElementById("markRead");
+        const notifList = document.getElementById("notifList");
+        const expandBtn = document.querySelector(".notif-expand");
 
-    const notifBell = document.getElementById("notifBell");
-    const notifPopup = document.getElementById("notifPopup");
-    const notifBox = document.getElementById("notifBox");
-    const markRead = document.getElementById("markRead");
-    const notifList = document.getElementById("notifList");
-    const expandBtn = document.querySelector(".notif-expand");
+        const navbar = document.getElementById("mainNavbar");
+        const content = document.getElementById("mainContent");
 
-    const navbar = document.getElementById("mainNavbar");
-    const content = document.getElementById("mainContent");
+        notifBell.addEventListener("click", () => {
+            notifPopup.style.display = "flex";
+            navbar.classList.add("blur-active");
+            content.classList.add("blur-active");
+        });
 
-    // Buka popup
-    notifBell.addEventListener("click", () => {
-        notifPopup.style.display = "flex";
+        notifPopup.addEventListener("click", (e) => {
+            if (e.target === notifPopup) {
+                notifPopup.style.display = "none";
+                navbar.classList.remove("blur-active");
+                content.classList.remove("blur-active");
+            }
+        });
 
-        navbar.classList.add("blur-active");
-        content.classList.add("blur-active");
+        markRead.addEventListener("click", () => {
+            notifList.innerHTML = `<div class="text-center text-secondary py-3">Tidak ada notifikasi.</div>`;
+            markRead.textContent = "Tidak ada notifikasi";
+            markRead.style.color = "gray";
+            markRead.style.cursor = "default";
+        });
+
+        expandBtn.addEventListener("click", () => {
+            notifBox.classList.toggle("large");
+        });
     });
-
-    // Tutup popup kalau klik area luar
-    notifPopup.addEventListener("click", (e) => {
-        if (e.target === notifPopup) {
-            notifPopup.style.display = "none";
-
-            navbar.classList.remove("blur-active");
-            content.classList.remove("blur-active");
-        }
-    });
-
-    // Tombol "Sudah dibaca semua"
-    markRead.addEventListener("click", () => {
-        notifList.innerHTML = `<div class="text-center text-secondary py-3">Tidak ada notifikasi.</div>`;
-        markRead.textContent = "Tidak ada notifikasi";
-        markRead.style.color = "gray";
-        markRead.style.cursor = "default";
-    });
-
-    // Toggle perbesar
-    expandBtn.addEventListener("click", () => {
-        notifBox.classList.toggle("large");
-    });
-
-});
-</script>
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
     @stack('scripts')
 </body>
 </html>

@@ -42,6 +42,7 @@ class ProfileController extends Controller
         $user->password = Hash::make($request->password);
     }
 
+    /** @var \App\Models\User $user */
     $user->save();
 
     return redirect()->route('profile.show')->with('success', 'Profil berhasil diperbarui!');
