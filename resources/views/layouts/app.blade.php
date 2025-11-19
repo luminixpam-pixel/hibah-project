@@ -140,6 +140,8 @@
     <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-custom shadow-sm">
         <div class="container-fluid px-4">
 
+            <a class="navbar-brand fw-semibold">E-Hibah</a>
+
             <a class="navbar-brand fw-semibold me-4">E-Hilbah</a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
