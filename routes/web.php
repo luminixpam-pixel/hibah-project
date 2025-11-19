@@ -46,6 +46,10 @@ Route::get('/monitoring-data', function () {
     return view('monitoring-data');
 })->name('monitoring.data');
 
+Route::get('/monitoring/kalender', function () {
+    return view('monitoring.data');
+})->name('monitoring.kalender');
+
 //upload proposal
 Route::get('/proposal/create', [ProposalController::class, 'create'])->name('proposal.create');
 Route::post('/proposal/store', [ProposalController::class, 'store'])->name('proposal.store');
@@ -62,7 +66,33 @@ Route::get('/daftar-proposal', function () {
     return view('proposal.daftar-proposal');
 });
 
-Route::get('/monitoring/kalender', function () {
-    return view('monitoring.data');
-})->name('monitoring.kalender');
+Route::get('/hasil-review', function () {
+    return view('proposal.hasil-review');
+});
+
+Route::get('/proposal-disetujui', function () {
+    return view('proposal.proposal-disetujui');
+});
+
+Route::get('/proposal-ditolak', function () {
+    return view('proposal.proposal-ditolak');
+});
+
+Route::get('/proposal-perlu-direview', function () {
+    return view('proposal.proposal-perlu-direview');
+});
+
+Route::get('/proposal-sedang-direview', function () {
+    return view('proposal.proposal-sedang-direview');
+});
+
+Route::get('/proposal-selesai', function () {
+    return view('proposal.proposal-selesai');
+});
+
+
+//review
+Route::get('/reviewer/isi-review', function () {
+    return view('reviewer.isi-review');
+})->name('reviewer.isi-review');
 

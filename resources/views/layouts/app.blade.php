@@ -142,8 +142,6 @@
 
             <a class="navbar-brand fw-semibold">E-Hibah</a>
 
-            <a class="navbar-brand fw-semibold me-4">E-Hilbah</a>
-
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
                 <span class="navbar-toggler-icon text-white"></span>
             </button>

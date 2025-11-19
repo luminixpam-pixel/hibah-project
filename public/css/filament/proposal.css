@@ -1,0 +1,112 @@
+/* === GLOBAL STYLE UNTUK SEMUA HALAMAN PROPOSAL === */
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #f5f7fb;
+    margin: 0;
+    padding: 0;
+}
+
+/* Container Utama */
+.container {
+    width: 90%;
+    max-width: 1100px;
+    margin: 30px auto;
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+/* Judul Halaman */
+.page-title {
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* Table */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.table th {
+    background: #3477eb;
+    color: #fff;
+    padding: 12px;
+    text-align: left;
+}
+
+.table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Badge Status */
+.badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #fff;
+    font-weight: 500;
+}
+
+.badge-success { background: #28a745; }     /* Proposal Disetujui */
+.badge-danger  { background: #dc3545; }     /* Proposal Ditolak */
+.badge-warning { background: #f0ad4e; }     /* Perlu Direview */
+.badge-info    { background: #17a2b8; }     /* Sedang Direview */
+.badge-dark    { background: #343a40; }     /* Selesai */
+
+/* Button */
+.btn {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.btn-primary { background: #3477eb; }
+.btn-danger  { background: #dc3545; }
+.btn-warning { background: #ffc107; color: #000; }
+.btn-dark    { background: #343a40; }
+
+/* Hover */
+.btn:hover {
+    opacity: .85;
+}
+
+/* Layout Card Proposal */
+.card {
+    background: #fff;
+    padding: 18px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border-left: 5px solid #3477eb;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.card h3 {
+    margin: 0 0 10px;
+    font-size: 20px;
+}
+
+/* Responsif */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+    }
+
+    .page-title {
+        font-size: 22px;
+    }
+
+    .table th, .table td {
+        font-size: 14px;
+    }
+}
