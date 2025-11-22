@@ -44,11 +44,8 @@ Route::get('/monitoring/data', function () {
 
 Route::get('/monitoring-data', function () {
     return view('monitoring-data');
-})->name('monitoring.data');
-
-Route::get('/monitoring/kalender', function () {
-    return view('monitoring.data');
 })->name('monitoring.kalender');
+
 
 //upload proposal
 Route::get('/proposal/create', [ProposalController::class, 'create'])->name('proposal.create');
@@ -61,37 +58,43 @@ Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])-
 Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
 Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
-//PROPOSAL
+// PROPOSAL
 Route::get('/daftar-proposal', function () {
     return view('proposal.daftar-proposal');
-});
-
-Route::get('/hasil-review', function () {
-    return view('proposal.hasil-review');
-});
+})->name('monitoring.proposalDikirim');
 
 Route::get('/proposal-disetujui', function () {
     return view('proposal.proposal-disetujui');
-});
+})->name('monitoring.proposalDisetujui');
 
 Route::get('/proposal-ditolak', function () {
     return view('proposal.proposal-ditolak');
-});
+})->name('monitoring.proposalDitolak');
 
 Route::get('/proposal-perlu-direview', function () {
     return view('proposal.proposal-perlu-direview');
-});
+})->name('monitoring.proposalPerluDireview');
 
 Route::get('/proposal-sedang-direview', function () {
     return view('proposal.proposal-sedang-direview');
-});
+})->name('monitoring.proposalSedangDireview');
 
 Route::get('/proposal-selesai', function () {
     return view('proposal.proposal-selesai');
-});
+})->name('monitoring.reviewSelesai');
+
+Route::get('/hasil-review', function () {
+    return view('proposal.hasil-review');
+})->name('monitoring.hasilRevisi');
+
+Route::get('/proposal-direvisi', function () {
+    return view('proposal.proposal-direvisi');
+})->name('monitoring.proposalDirevisi');
 
 
-//review
+
+
+// REVIEWER
 Route::get('/reviewer/isi-review', function () {
     return view('reviewer.isi-review');
 })->name('reviewer.isi-review');

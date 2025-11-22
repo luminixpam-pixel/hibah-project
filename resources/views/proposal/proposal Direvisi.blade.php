@@ -29,8 +29,9 @@
 <div class="container mt-4">
 
     {{-- TITLE --}}
-    <h4 class="page-title mb-1">📄 Proposal Selesai— Universitas YARSI</h4>
-    <p class="page-subtitle mb-4">Berikut daftar seluruh proposal yang telah selesai.</p>
+    <h4 class="page-title mb-1">📄 Proposal Direvisi — Universitas YARSI</h4>
+    <p class="page-subtitle mb-4">Berikut daftar seluruh proposal yang Direvisi.</p>
+
 
     {{-- TABLE --}}
     <div class="table-responsive">
@@ -38,10 +39,10 @@
             <thead>
                 <tr>
                     <th>No</th>
-                    <th>Reviewer</th>
-                    <th>Pengusul</th>
                     <th>Judul Proposal</th>
-                    <th>Status</th>
+                    <th>Pengusul</th>
+                    <th>Reviewer</th>
+                    <th>Status Review</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
@@ -52,8 +53,11 @@
                     <td>Analisis Efektivitas Obat Herbal</td>
                     <td>Prof. Pratiwi P. Sudarmono</td>
                     <td>Dr. Ahmad Faisal</td>
-                    <td><span class="badge bg-success">Disetujui</span></td>
+                    <td><span class="badge bg-success">Selesai</span></td>
                     <td>
+                        <button class="btn btn-warning btn-action me-1">
+                            <i class="bi bi-pencil-square"></i> Revisi
+                        </button>
 
                         <button class="btn btn-primary btn-action">
                             <i class="bi bi-download"></i> Download
@@ -66,8 +70,12 @@
                     <td>Pemanfaatan AI untuk Deteksi Penyakit Kulit</td>
                     <td>Dr. Ratna Sitompul</td>
                     <td>Prof. Hartono</td>
-                    <td><span class="badge bg-success">Ditolak</span></td>
+                    <td><span class="badge bg-success">Selesai</span></td>
                     <td>
+                        <button class="btn btn-warning btn-action me-1">
+                            <i class="bi bi-pencil-square"></i> Revisi
+                        </button>
+
                         <button class="btn btn-primary btn-action">
                             <i class="bi bi-download"></i> Download
                         </button>

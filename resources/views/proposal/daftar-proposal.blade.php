@@ -28,9 +28,11 @@
                     <label>Status Proposal</label>
                     <select class="form-select mb-3">
                         <option>Dikirim</option>
-                        <option>Direview</option>
                         <option>Ditolak</option>
-                        <option>Diterima</option>
+                        <option>Disetujui</option>
+                        <option>Direview</option>
+                        <option>Hasil Review</option>
+                        <option>Selesai Direview</option>
                     </select>
 
                     <label>Periode Hibah</label>
@@ -90,7 +92,7 @@
                     <td>Analisis Efektivitas Obat Herbal</td>
                     <td>Prof.dr. Pratiwi Pujiestari Sudarmono, Ph.D, Sp.M.K (K)</td>
                     <td>Prof.dr. Pratiwi Pujiestari Sudarmono, Ph.D, Sp.M.K (K)</td>
-                    <td>100.00%</td>
+                    <td>Disetujui</td>
                     <td><a href="#" class="text-primary">Detail</a></td>
                 </tr>
 
@@ -99,7 +101,7 @@
                     <td>Analisis Efektivitas Obat Herbal</td>
                     <td>Achmad Sofwan, dr. H. M.Kes., PA.</td>
                     <td>Prof.dr. Pratiwi Pujiestari Sudarmono, Ph.D, Sp.M.K (K)</td>
-                    <td>100.00%</td>
+                    <td>Ditolak</td>
                     <td><a href="#" class="text-primary">Detail</a></td>
                 </tr>
 
@@ -108,7 +110,7 @@
                     <td>Analisis Efektivitas Obat Herbal</td>
                     <td>Ratna Sitompul, Dr. dr. Sp.M(K)</td>
                     <td>Prof.dr. Pratiwi Pujiestari Sudarmono, Ph.D, Sp.M.K (K)</td>
-                    <td>100.00%</td>
+                    <td>Ditolak</td>
                     <td><a href="#" class="text-primary">Detail</a></td>
                 </tr>
 
