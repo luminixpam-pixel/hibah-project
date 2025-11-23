@@ -4,13 +4,12 @@
 
 <div class="container mt-4">
 
-```
 {{-- =======================
     TOMBOL AJUKAN PROPOSAL
 ======================== --}}
 <div class="d-flex justify-content-between mb-3">
     <button id="openPopupBtn" class="btn btn-success">
-        Ajukan Proposal
+        Unggah Proposal
     </button>
 
     <a href="{{ route('monitoring.kalender') }}" class="btn btn-success">
@@ -60,7 +59,6 @@
     <p><strong>Program Studi:</strong> {{ $user->program_studi ?? '-' }}</p>
     <p><strong>Jabatan / Posisi:</strong> {{ $user->jabatan ?? '-' }}</p>
 </div>
-```
 
 </div>
 
@@ -74,7 +72,6 @@ DI LUAR CONTAINER
         <div class="popup-content">
             <span class="close-popup" id="closePopupBtn">&times;</span>
 
-```
         <form action="{{ route('proposal.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="mb-3">
@@ -111,7 +108,6 @@ DI LUAR CONTAINER
         </form>
     </div>
 </div>
-```
 
 </div>
 

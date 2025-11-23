@@ -14,7 +14,18 @@ class ProposalController extends Controller
     public function index()
     {
         $proposals = Proposal::latest()->get();
-        return view('proposal.index', compact('proposals'));
+
+        // 🔥 WAJIB: gunakan nama file blade yang benar
+        return view('proposal.daftar_proposal', compact('proposals'));
+    }
+
+    /**
+     * Halaman create (dipanggil route /proposal/create)
+     * Karena kamu pakai popup, cukup redirect ke daftar saja
+     */
+    public function create()
+    {
+        return redirect()->route('proposal.index');
     }
 
     /**
@@ -23,20 +34,36 @@ class ProposalController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'judul' => 'required|string|max:255',
-            'file'  => 'required|file|mimes:pdf,doc,docx|max:102400',
+            'judul'       => 'required|string|max:255',
+            'nama_ketua'  => 'required|string|max:255',
+            'biaya'       => 'nullable|string|max:255',
+            'anggota'     => 'nullable|array',
+            'file'        => 'required|file|mimes:pdf,doc,docx|max:102400',
         ]);
 
         // Upload file ke storage/app/public/proposal_files
         $filePath = $request->file('file')->store('proposal_files', 'public');
 
-        // Simpan database
+        // Konversi anggota[] menjadi JSON
+        $anggotaJson = $request->anggota ? json_encode($request->anggota) : null;
+
+        // Simpan database sesuai struktur tabel proposals
         Proposal::create([
-            'judul' => $request->judul,
-            'file_path' => $filePath,
+            'judul'          => $request->judul,
+            'nama_ketua'     => $request->nama_ketua,
+            'file_path'      => $filePath,
+            'anggota'        => $anggotaJson,
+            'biaya'          => $request->biaya,
+
+            // Kolom lain (default aman)
+            'status'         => 'Dikirim',
+            'periode'        => null,
+            'fakultas_prodi' => null,
+            'user_id'        => auth()->id(),
+            'pengusul'       => null,
+            'reviewer'       => null,
         ]);
 
-        // Setelah submit popup → pindah ke halaman proposal
         return redirect()->route('proposal.index')->with('success', 'Proposal berhasil diajukan!');
     }
 
@@ -58,7 +85,5 @@ class ProposalController extends Controller
         }
 
         return response()->download($path);
-        return redirect()->route('proposal.index')->with('success', 'Proposal berhasil dikirim!');
-
     }
 }

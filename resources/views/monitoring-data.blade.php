@@ -4,7 +4,6 @@
 
 <div class="container py-4">
 
-```
 <h3 class="fw-bold mb-4">📊 KALENDER</h3>
 
 <!-- TIMELINE -->
@@ -52,7 +51,6 @@
 
 <!-- KALENDER -->
 <div id="calendar"></div>
-```
 
 </div>
 
@@ -62,7 +60,6 @@
     <div class="popup-content">
         <span id="closePopupBtn" class="close-popup">&times;</span>
 
-```
     <h5 class="fw-bold mb-3">Ajukan Proposal Baru</h5>
 
     <form>
@@ -79,7 +76,6 @@
         <button type="submit" class="btn btn-success w-100">Unggah Proposal</button>
     </form>
 </div>
-```
 
 </div>
 

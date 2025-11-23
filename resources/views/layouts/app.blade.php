@@ -29,7 +29,7 @@ body {
 /* Navbar */
 #mainNavbar {
     background-color: #1fbd4c;
-    position: relative; /* atau fixed jika mau selalu menempel */
+    position: relative;
     z-index: 3100;
 }
 #mainNavbar .nav-link, #mainNavbar .navbar-brand { color: #fff !important; }
@@ -100,7 +100,6 @@ body {
 /* Kalender */
 #calendar { max-width: 100%; margin:0 auto; background:#fff; border-radius:12px; }
 
-/* Animations */
 @keyframes fadeIn { from {opacity:0; transform:scale(0.94);} to {opacity:1; transform:scale(1);} }
 </style>
 
@@ -118,14 +117,17 @@ body {
         <span class="navbar-toggler-icon text-white"></span>
     </button>
 
-```
 <div class="collapse navbar-collapse" id="navbarContent">
     <ul class="navbar-nav navbar-left">
+
+        {{-- Dashboard --}}
         <li class="nav-item">
             <a class="nav-link" href="{{ route('dashboard') }}">
                 <i class="bi bi-house-door"></i> Dashboard
             </a>
         </li>
+
+        {{-- Monitoring & Data --}}
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="monitoringDropdown" data-bs-toggle="dropdown">
                 <i class="bi bi-bar-chart"></i> Monitoring & Data
@@ -139,10 +141,18 @@ body {
                 <li><a class="dropdown-item" href="{{ route('monitoring.reviewSelesai') }}">Review Selesai</a></li>
                 <li><a class="dropdown-item" href="{{ route('monitoring.hasilRevisi') }}">Hasil Revisi</a></li>
                 <li><a class="dropdown-item" href="{{ route('monitoring.proposalDirevisi') }}">Proposal Direvisi</a></li>
-                <li><a class="dropdown-item" href="{{ route('monitoring.kalender') }}">Kalender</a></li>
             </ul>
         </li>
+
+        {{-- Kalender DIPINDAH KELUAR --}}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('monitoring.kalender') }}">
+                <i class="bi bi-calendar3"></i> Kalender
+            </a>
+        </li>
+
     </ul>
+
     <ul class="navbar-nav ms-auto">
         <li class="nav-item">
             <a id="notifBell" class="nav-link" style="cursor:pointer;"><i class="bi bi-bell"></i></a>
@@ -163,19 +173,16 @@ body {
         </li>
     </ul>
 </div>
-```
 
 </div>
 </nav>
 
 {{-- Content --}}
-
 <div id="mainContent" class="container content-wrapper mt-3">
     @yield('content')
 </div>
 
 {{-- Popup Proposal --}}
-
 <div id="proposalPopup" class="popup-overlay">
     <div class="popup-content">
         <span class="close-popup" id="closePopupBtn">&times;</span>
@@ -208,7 +215,6 @@ body {
 </div>
 
 {{-- Notification Popup --}}
-
 <div id="notifPopup" class="notif-popup-overlay">
     <div id="notifBox" class="notif-popup">
         <div class="notif-header">
@@ -238,12 +244,10 @@ body {
 {{-- Scripts --}}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js'></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // Proposal Popup
     const openBtn = document.getElementById("openPopupBtn");
     const closeBtn = document.getElementById("closePopupBtn");
     const popup = document.getElementById("proposalPopup");
@@ -253,7 +257,6 @@ document.addEventListener("DOMContentLoaded", () => {
     closeBtn.addEventListener("click", () => { popup.classList.remove("active"); setTimeout(()=>popup.style.display="none",250); });
     popup.addEventListener("click", (e) => { if(e.target===popup){ popup.classList.remove("active"); setTimeout(()=>popup.style.display="none",250); } });
 
-    // Anggota dinamis
     const anggotaContainer = document.getElementById("anggota-container");
     const addBtn = document.getElementById("addAnggotaBtn");
     if(addBtn){
@@ -267,7 +270,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     document.addEventListener("click", (e) => { if(e.target.classList.contains("remove-anggota")) e.target.parentElement.remove(); });
 
-    // Notification Popup
     const notifBell = document.getElementById("notifBell");
     const notifPopup = document.getElementById("notifPopup");
     const notifBox = document.getElementById("notifBox");
@@ -278,7 +280,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     notifBell.addEventListener("click", () => {
         notifPopup.style.display = "flex";
-        content.classList.add("blur-active"); // blur hanya content
+        content.classList.add("blur-active");
     });
     notifPopup.addEventListener("click", (e) => { if(e.target===notifPopup){ notifPopup.style.display="none"; content.classList.remove("blur-active"); }});
     markRead.addEventListener("click", () => {
@@ -288,7 +290,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     expandBtn.addEventListener("click", () => { notifBox.classList.toggle("large"); });
 
-    // Kalender
     const calendarEl = document.getElementById('calendar');
     if(calendarEl){
         const calendar = new FullCalendar.Calendar(calendarEl, {

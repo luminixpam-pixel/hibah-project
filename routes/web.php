@@ -16,17 +16,15 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Lupa Password (sementara nonaktif)
+// Lupa Password
 Route::get('/password/reset', function () {
     return 'Fitur lupa password akan tersedia melalui sistem LDAP Universitas.';
 })->name('password.request');
 
-// Dashboard (hanya bisa diakses setelah login)
+// Dashboard
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/update', [DashboardController::class, 'updateProfile'])->name('dashboard.updateProfile');
-    Route::post('/proposal/store', [App\Http\Controllers\ProposalController::class, 'store'])->name('proposal.store');
-
 });
 
 // Monitoring & Data → Kalender Timeline
@@ -38,31 +36,35 @@ Route::get('/monitoring-data', function () {
     return view('monitoring.index');
 })->name('monitoring.data');
 
+// HINDARI DUplikasi route
 Route::get('/monitoring/data', function () {
     return view('monitoring.data');
-})->name('monitoring.data');
+})->name('monitoring.data2');
 
-Route::get('/monitoring-data', function () {
+// Kalender
+Route::get('/monitoring-kalender', function () {
     return view('monitoring-data');
 })->name('monitoring.kalender');
 
 
-//upload proposal
+// UPLOAD PROPOSAL
 Route::get('/proposal/create', [ProposalController::class, 'create'])->name('proposal.create');
 Route::post('/proposal/store', [ProposalController::class, 'store'])->name('proposal.store');
 Route::get('/proposal', [ProposalController::class, 'index'])->name('proposal.index');
 Route::get('/proposal/download/{id}', [ProposalController::class, 'download'])->name('proposal.download');
+
 
 // PROFILE
 Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
 Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
 Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
-// PROPOSAL
-Route::get('/daftar-proposal', function () {
-    return view('proposal.daftar-proposal');
-})->name('monitoring.proposalDikirim');
 
+// PROPOSAL (Monitoring Status)
+Route::get('/daftar-proposal', [ProposalController::class, 'index'])
+    ->name('monitoring.proposalDikirim');
+
+// VIEW STATIS — PASTIKAN FILE ADA DI /resources/views/proposal/
 Route::get('/proposal-disetujui', function () {
     return view('proposal.proposal-disetujui');
 })->name('monitoring.proposalDisetujui');
@@ -92,10 +94,7 @@ Route::get('/proposal-direvisi', function () {
 })->name('monitoring.proposalDirevisi');
 
 
-
-
 // REVIEWER
 Route::get('/reviewer/isi-review', function () {
     return view('reviewer.isi-review');
 })->name('reviewer.isi-review');
-

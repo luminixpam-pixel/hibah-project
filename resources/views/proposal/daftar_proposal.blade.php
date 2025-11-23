@@ -87,33 +87,26 @@
             </thead>
 
             <tbody>
+                @forelse ($proposals as $index => $proposal)
                 <tr>
-                    <td>1</td>
-                    <td>Analisis Efektivitas Obat Herbal</td>
-                    <td>Prof.dr. Pratiwi Pujiestari Sudarmono, Ph.D, Sp.M.K (K)</td>
-                    <td>Prof.dr. Pratiwi Pujiestari Sudarmono, Ph.D, Sp.M.K (K)</td>
-                    <td>Disetujui</td>
-                    <td><a href="#" class="text-primary">Detail</a></td>
+                    <td>{{ $index + 1 }}</td>
+                    <td>{{ $proposal->judul }}</td>
+                    <td>{{ $proposal->nama_ketua }}</td>
+                    <td>{{ $proposal->reviewer ?? '-' }}</td>
+                    <td>{{ $proposal->status }}</td>
+                    <td>
+                        @if ($proposal->file_path)
+                            <a href="{{ route('proposal.download', $proposal->id) }}" class="text-primary">Download</a>
+                        @else
+                            <span class="text-muted">No File</span>
+                        @endif
+                    </td>
                 </tr>
-
+                @empty
                 <tr>
-                    <td>2</td>
-                    <td>Analisis Efektivitas Obat Herbal</td>
-                    <td>Achmad Sofwan, dr. H. M.Kes., PA.</td>
-                    <td>Prof.dr. Pratiwi Pujiestari Sudarmono, Ph.D, Sp.M.K (K)</td>
-                    <td>Ditolak</td>
-                    <td><a href="#" class="text-primary">Detail</a></td>
+                    <td colspan="6" class="text-center text-muted">Belum ada proposal yang dikirim.</td>
                 </tr>
-
-                <tr>
-                    <td>3</td>
-                    <td>Analisis Efektivitas Obat Herbal</td>
-                    <td>Ratna Sitompul, Dr. dr. Sp.M(K)</td>
-                    <td>Prof.dr. Pratiwi Pujiestari Sudarmono, Ph.D, Sp.M.K (K)</td>
-                    <td>Ditolak</td>
-                    <td><a href="#" class="text-primary">Detail</a></td>
-                </tr>
-
+                @endforelse
             </tbody>
         </table>
     </div>
