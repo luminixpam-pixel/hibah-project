@@ -14,8 +14,6 @@ class ProposalController extends Controller
     public function index()
     {
         $proposals = Proposal::latest()->get();
-
-        // 🔥 WAJIB: gunakan nama file blade yang benar
         return view('proposal.daftar_proposal', compact('proposals'));
     }
 

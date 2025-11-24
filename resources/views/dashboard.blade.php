@@ -12,9 +12,6 @@
         Unggah Proposal
     </button>
 
-    <a href="{{ route('monitoring.kalender') }}" class="btn btn-success">
-        Kalender
-    </a>
 </div>
 
 {{-- =======================

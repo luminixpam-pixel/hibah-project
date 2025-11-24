@@ -7,33 +7,14 @@
     {{-- TITLE --}}
     <h4 class="fw-bold">Daftar Proposal Hibah Internal Universitas YARSI</h4>
 
-    {{-- DOWNLOAD BUTTON --}}
-    <div class="mt-3">
-        <button class="btn btn-success d-flex align-items-center">
-            <i class="bi bi-file-earmark-word me-2"></i> WORD
-        </button>
-        <span class="ms-2">Download Laporan Akhir secara Keseluruhan</span>
-    </div>
-
     {{-- FILTER SECTION --}}
     <div class="card mt-4">
         <div class="card-body">
-
             <div class="row">
-
                 {{-- Filter kiri --}}
                 <div class="col-md-6">
                     <p class="fw-semibold text-success">Filter Berdasarkan:</p>
 
-                    <label>Status Proposal</label>
-                    <select class="form-select mb-3">
-                        <option>Dikirim</option>
-                        <option>Ditolak</option>
-                        <option>Disetujui</option>
-                        <option>Direview</option>
-                        <option>Hasil Review</option>
-                        <option>Selesai Direview</option>
-                    </select>
 
                     <label>Periode Hibah</label>
                     <select class="form-select mb-3">
@@ -41,17 +22,8 @@
                         <option>Semester Ganjil 2025</option>
                     </select>
 
-                    <label>Status Proposal</label>
-                    <select class="form-select mb-3">
-                        <option>Dikirim</option>
-                        <option>Direvisi</option>
-                        <option>Disetujui</option>
-                    </select>
-                </div>
-
                 {{-- Filter kanan --}}
                 <div class="col-md-6">
-
                     <p class="fw-semibold text-success">Filter Berdasarkan:</p>
 
                     <div class="form-check">
@@ -64,11 +36,9 @@
                         <label class="form-check-label">Prodi</label>
                     </div>
 
-                    <button class="btn btn-success mt-3 px-4">SEND</button>
+                    <button class="btn btn-success mt-3 px-4">Cari</button>
                 </div>
-
             </div>
-
         </div>
     </div>
 
@@ -80,8 +50,6 @@
                     <th>No</th>
                     <th>Judul Proposal</th>
                     <th>Pengusul</th>
-                    <th>Reviewer</th>
-                    <th>Status</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
@@ -92,8 +60,6 @@
                     <td>{{ $index + 1 }}</td>
                     <td>{{ $proposal->judul }}</td>
                     <td>{{ $proposal->nama_ketua }}</td>
-                    <td>{{ $proposal->reviewer ?? '-' }}</td>
-                    <td>{{ $proposal->status }}</td>
                     <td>
                         @if ($proposal->file_path)
                             <a href="{{ route('proposal.download', $proposal->id) }}" class="text-primary">Download</a>

@@ -5,7 +5,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProposalController;
 
-
 // Halaman utama diarahkan ke login
 Route::get('/', function () {
     return view('auth.custom-login');
@@ -46,19 +45,16 @@ Route::get('/monitoring-kalender', function () {
     return view('monitoring-data');
 })->name('monitoring.kalender');
 
-
 // UPLOAD PROPOSAL
 Route::get('/proposal/create', [ProposalController::class, 'create'])->name('proposal.create');
 Route::post('/proposal/store', [ProposalController::class, 'store'])->name('proposal.store');
 Route::get('/proposal', [ProposalController::class, 'index'])->name('proposal.index');
 Route::get('/proposal/download/{id}', [ProposalController::class, 'download'])->name('proposal.download');
 
-
 // PROFILE
 Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
 Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
 Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
-
 
 // PROPOSAL (Monitoring Status)
 Route::get('/daftar-proposal', [ProposalController::class, 'index'])
@@ -92,7 +88,6 @@ Route::get('/hasil-review', function () {
 Route::get('/proposal-direvisi', function () {
     return view('proposal.proposal-direvisi');
 })->name('monitoring.proposalDirevisi');
-
 
 // REVIEWER
 Route::get('/reviewer/isi-review', function () {

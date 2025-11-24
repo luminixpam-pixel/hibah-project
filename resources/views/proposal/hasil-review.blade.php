@@ -29,16 +29,8 @@
 <div class="container mt-4">
 
     {{-- TITLE --}}
-    <h4 class="page-title mb-1">📄 Hasil Review Proposal — Universitas YARSI</h4>
+    <h4 class="page-title mb-1"> Hasil Review Proposal — Universitas YARSI</h4>
     <p class="page-subtitle mb-4">Berikut daftar seluruh proposal yang telah selesai direview.</p>
-
-    {{-- DOWNLOAD ALL --}}
-    <div class="d-flex align-items-center mb-4">
-        <button class="btn btn-primary d-flex align-items-center">
-            <i class="bi bi-file-earmark-arrow-down me-2"></i> Download Semua (Word)
-        </button>
-        <span class="ms-2 text-muted">Unduh seluruh laporan akhir dalam bentuk dokumen Word.</span>
-    </div>
 
     {{-- TABLE --}}
     <div class="table-responsive">
