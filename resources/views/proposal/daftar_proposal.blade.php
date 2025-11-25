@@ -4,25 +4,22 @@
 
 <div class="container mt-4">
 
-    {{-- TITLE --}}
     <h4 class="fw-bold">Daftar Proposal Hibah Internal Universitas YARSI</h4>
 
-    {{-- FILTER SECTION --}}
     <div class="card mt-4">
         <div class="card-body">
             <div class="row">
-                {{-- Filter kiri --}}
+
                 <div class="col-md-6">
                     <p class="fw-semibold text-success">Filter Berdasarkan:</p>
-
 
                     <label>Periode Hibah</label>
                     <select class="form-select mb-3">
                         <option>Semester Genap 2025 / Tahun 2025</option>
                         <option>Semester Ganjil 2025</option>
                     </select>
+                </div>
 
-                {{-- Filter kanan --}}
                 <div class="col-md-6">
                     <p class="fw-semibold text-success">Filter Berdasarkan:</p>
 
@@ -38,11 +35,11 @@
 
                     <button class="btn btn-success mt-3 px-4">Cari</button>
                 </div>
+
             </div>
         </div>
     </div>
 
-    {{-- TABLE --}}
     <div class="table-responsive mt-4">
         <table class="table table-bordered align-middle">
             <thead class="table-light">
@@ -60,9 +57,12 @@
                     <td>{{ $index + 1 }}</td>
                     <td>{{ $proposal->judul }}</td>
                     <td>{{ $proposal->nama_ketua }}</td>
+
                     <td>
                         @if ($proposal->file_path)
-                            <a href="{{ route('proposal.download', $proposal->id) }}" class="text-primary">Download</a>
+                            <a href="{{ route('proposal.download', $proposal->id) }}" class="text-primary">
+                                Download
+                            </a>
                         @else
                             <span class="text-muted">No File</span>
                         @endif

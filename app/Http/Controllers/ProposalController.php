@@ -19,7 +19,6 @@ class ProposalController extends Controller
 
     /**
      * Halaman create (dipanggil route /proposal/create)
-     * Karena kamu pakai popup, cukup redirect ke daftar saja
      */
     public function create()
     {
@@ -39,21 +38,36 @@ class ProposalController extends Controller
             'file'        => 'required|file|mimes:pdf,doc,docx|max:102400',
         ]);
 
-        // Upload file ke storage/app/public/proposal_files
-        $filePath = $request->file('file')->store('proposal_files', 'public');
+        /* ============================================
+           🔥 PERBAIKAN BAGIAN INI SAJA
+           Agar nama file TIDAK random seperti sebelumnya
+           ============================================ */
 
-        // Konversi anggota[] menjadi JSON
+        // Ambil ekstensi asli file
+        $extension = $request->file('file')->getClientOriginalExtension();
+
+        // Bersihkan judul biar aman jadi nama file
+        $cleanName = preg_replace('/[^A-Za-z0-9\-]/', '', $request->judul);
+
+        // Buat nama file baru
+        $finalName = $cleanName . '.' . $extension;
+
+        // Simpan file dengan nama yang sudah dibersihkan
+        $filePath = $request->file('file')->storeAs('proposal_files', $finalName, 'public');
+
+        /* ============================================ */
+
+
+        // Konversi anggota[] ke JSON
         $anggotaJson = $request->anggota ? json_encode($request->anggota) : null;
 
-        // Simpan database sesuai struktur tabel proposals
+        // Simpan ke database
         Proposal::create([
             'judul'          => $request->judul,
             'nama_ketua'     => $request->nama_ketua,
             'file_path'      => $filePath,
             'anggota'        => $anggotaJson,
             'biaya'          => $request->biaya,
-
-            // Kolom lain (default aman)
             'status'         => 'Dikirim',
             'periode'        => null,
             'fakultas_prodi' => null,
@@ -82,6 +96,7 @@ class ProposalController extends Controller
             return back()->with('error', 'File tidak ditemukan di server.');
         }
 
-        return response()->download($path);
+        // Download menggunakan nama file yang benar
+        return response()->download($path, basename($proposal->file_path));
     }
 }
