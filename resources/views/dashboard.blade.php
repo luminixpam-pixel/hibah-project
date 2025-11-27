@@ -8,9 +8,12 @@
     TOMBOL AJUKAN PROPOSAL
 ======================== --}}
 <div class="d-flex justify-content-between mb-3">
+
+    @if(Auth::user()->role === 'pengaju')
     <button id="openPopupBtn" class="btn btn-success">
         Unggah Proposal
     </button>
+    @endif
 
 </div>
 
@@ -18,17 +21,30 @@
     DASHBOARD CARD
 ======================== --}}
 <div class="row g-3 mb-4">
+
     @php
-    $dashboardItems = [
-        ['title' => 'Proposal Dikirim', 'count' => 25, 'route' => 'monitoring.proposalDikirim'],
-        ['title' => 'Proposal Disetujui', 'count' => 25, 'route' => 'monitoring.proposalDisetujui'],
-        ['title' => 'Proposal Ditolak', 'count' => 0, 'route' => 'monitoring.proposalDitolak'],
-        ['title' => 'Hasil Revisi', 'count' => 0, 'route' => 'monitoring.hasilRevisi'],
-        ['title' => 'Proposal Perlu Direview', 'count' => 0, 'route' => 'monitoring.proposalPerluDireview'],
-        ['title' => 'Proposal Sedang Direview', 'count' => 0, 'route' => 'monitoring.proposalSedangDireview'],
-        ['title' => 'Review Selesai', 'count' => 0, 'route' => 'monitoring.reviewSelesai'],
-        ['title' => 'Proposal Direvisi', 'count' => 0, 'route' => 'monitoring.proposalDirevisi'],
-    ];
+        // Ambil role user
+        $role = Auth::user()->role;
+
+        // Semua card
+        $dashboardItems = [
+            ['title' => 'Proposal Dikirim', 'count' => 25, 'route' => 'monitoring.proposalDikirim'],
+            ['title' => 'Proposal Disetujui', 'count' => 25, 'route' => 'monitoring.proposalDisetujui'],
+            ['title' => 'Proposal Ditolak', 'count' => 0, 'route' => 'monitoring.proposalDitolak'],
+            ['title' => 'Hasil Revisi', 'count' => 0, 'route' => 'monitoring.hasilRevisi'],
+            ['title' => 'Proposal Perlu Direview', 'count' => 0, 'route' => 'monitoring.proposalPerluDireview'],
+            ['title' => 'Proposal Sedang Direview', 'count' => 0, 'route' => 'monitoring.proposalSedangDireview'],
+            ['title' => 'Review Selesai', 'count' => 0, 'route' => 'monitoring.reviewSelesai'],
+            ['title' => 'Proposal Direvisi', 'count' => 0, 'route' => 'monitoring.proposalDirevisi'],
+        ];
+
+        // Jika role = pengaju → hapus 2 card
+        if ($role === 'pengaju') {
+            $dashboardItems = array_filter($dashboardItems, function ($item) {
+                return $item['title'] !== 'Proposal Perlu Direview'
+                    && $item['title'] !== 'Proposal Sedang Direview';
+            });
+        }
     @endphp
 
     @foreach ($dashboardItems as $item)
@@ -47,7 +63,11 @@
     PROFIL PENGGUNA
 ======================== --}}
 <div class="card p-4">
-    <h5 class="mb-3">Profil Pengguna - Anda login sebagai <b>{{ $user->role ?? 'Role' }}</b></h5>
+    <h5 class="mb-3">
+        Profil Pengguna - Anda login sebagai
+        <b>{{ $user->role_label ?? 'Role' }}</b>
+    </h5>
+
     <p><strong>Nama Lengkap:</strong> {{ $user->name ?? '-' }}</p>
     <p><strong>NIDN / NIP:</strong> {{ $user->nidn ?? '-' }}</p>
     <p><strong>Email:</strong> {{ $user->email ?? '-' }}</p>
@@ -63,7 +83,7 @@
 POPUP AJUKAN PROPOSAL
 DI LUAR CONTAINER
 ======================== --}}
-
+@if(Auth::user()->role === 'pengaju')
 <div id="proposalPopup" class="popup-overlay">
     <div class="popup-inner">
         <div class="popup-content">
@@ -103,15 +123,16 @@ DI LUAR CONTAINER
 
             <button class="btn btn-success w-100" type="submit">Kirim Proposal</button>
         </form>
+
+        </div>
     </div>
 </div>
-
-</div>
+@endif
 
 @endsection
 
-@push('styles')
 
+@push('styles')
 <style>
 .popup-overlay {
     display: none;
@@ -158,50 +179,53 @@ DI LUAR CONTAINER
 
 .popup-content .close-popup:hover { color: red; }
 </style>
-
 @endpush
 
-@push('scripts')
 
+@push('scripts')
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const openBtn = document.getElementById("openPopupBtn");
     const closeBtn = document.getElementById("closePopupBtn");
     const popup = document.getElementById("proposalPopup");
 
-    // Buka popup
-    openBtn.addEventListener("click", () => {
-        popup.style.display = "flex";
-        setTimeout(() => popup.classList.add("active"), 10);
-    });
+    if(openBtn){
+        openBtn.addEventListener("click", () => {
+            popup.style.display = "flex";
+            setTimeout(() => popup.classList.add("active"), 10);
+        });
+    }
 
-    // Tutup popup
-    closeBtn.addEventListener("click", () => {
-        popup.classList.remove("active");
-        setTimeout(() => popup.style.display = "none", 250);
-    });
-
-    // Tutup klik luar popup
-    popup.addEventListener("click", (e) => {
-        if(e.target === popup){
+    if(closeBtn){
+        closeBtn.addEventListener("click", () => {
             popup.classList.remove("active");
             setTimeout(() => popup.style.display = "none", 250);
-        }
-    });
+        });
+    }
 
-    // Tambah / hapus anggota
+    if(popup){
+        popup.addEventListener("click", (e) => {
+            if(e.target === popup){
+                popup.classList.remove("active");
+                setTimeout(() => popup.style.display = "none", 250);
+            }
+        });
+    }
+
     const anggotaContainer = document.getElementById("anggota-container");
     const addBtn = document.getElementById("addAnggotaBtn");
 
-    addBtn.addEventListener("click", function () {
-        const div = document.createElement("div");
-        div.classList.add("d-flex", "gap-2", "mb-2", "anggota-row");
-        div.innerHTML = `
-            <input type="text" name="anggota[]" class="form-control" placeholder="Masukkan nama anggota">
-            <button type="button" class="btn btn-danger btn-sm remove-anggota">Hapus</button>
-        `;
-        anggotaContainer.appendChild(div);
-    });
+    if(addBtn){
+        addBtn.addEventListener("click", function () {
+            const div = document.createElement("div");
+            div.classList.add("d-flex", "gap-2", "mb-2", "anggota-row");
+            div.innerHTML = `
+                <input type="text" name="anggota[]" class="form-control" placeholder="Masukkan nama anggota">
+                <button type="button" class="btn btn-danger btn-sm remove-anggota">Hapus</button>
+            `;
+            anggotaContainer.appendChild(div);
+        });
+    }
 
     document.addEventListener("click", function(e){
         if(e.target.classList.contains("remove-anggota")){
@@ -210,5 +234,4 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 </script>
-
 @endpush

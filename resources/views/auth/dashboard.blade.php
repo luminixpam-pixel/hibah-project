@@ -81,7 +81,9 @@
         <button class="proposal-btn">Unggah Proposal</button>
     </div>
 
+    {{-- ====================== ROW 1 ====================== --}}
     <div class="row g-3">
+
         <div class="col-md-3">
             <div class="card-stat p-3">
                 <h6>Proposal Dikirim</h6>
@@ -89,6 +91,7 @@
                 <i class="bi bi-send"></i>
             </div>
         </div>
+
         <div class="col-md-3">
             <div class="card-stat p-3">
                 <h6>Proposal Disetujui</h6>
@@ -96,6 +99,7 @@
                 <i class="bi bi-check-circle"></i>
             </div>
         </div>
+
         <div class="col-md-3">
             <div class="card-stat p-3">
                 <h6>Proposal Ditolak</h6>
@@ -103,6 +107,7 @@
                 <i class="bi bi-x-circle"></i>
             </div>
         </div>
+
         <div class="col-md-3">
             <div class="card-stat p-3">
                 <h6>Hasil Review</h6>
@@ -110,9 +115,12 @@
                 <i class="bi bi-pencil-square"></i>
             </div>
         </div>
+
     </div>
 
+    {{-- ====================== ROW 2 ====================== --}}
     <div class="row g-3 mt-2">
+
         <div class="col-md-3">
             <div class="card-stat p-3">
                 <h6>Proposal Direvisi</h6>
@@ -120,6 +128,10 @@
                 <i class="bi bi-question-circle"></i>
             </div>
         </div>
+
+        {{-- ====================== BLOCKED FOR PENGAJU ====================== --}}
+        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'reviewer')
+
         <div class="col-md-3">
             <div class="card-stat p-3">
                 <h6>Proposal Perlu Direview</h6>
@@ -127,6 +139,7 @@
                 <i class="bi bi-layers"></i>
             </div>
         </div>
+
         <div class="col-md-3">
             <div class="card-stat p-3">
                 <h6>Proposal Sedang Direview</h6>
@@ -134,6 +147,10 @@
                 <i class="bi bi-pen"></i>
             </div>
         </div>
+
+        @endif
+        {{-- ====================== END BLOCK ====================== --}}
+
         <div class="col-md-3">
             <div class="card-stat p-3">
                 <h6>Review Selesai</h6>
@@ -141,6 +158,7 @@
                 <i class="bi bi-file-earmark-check"></i>
             </div>
         </div>
+
     </div>
 
     <div class="profile-section">

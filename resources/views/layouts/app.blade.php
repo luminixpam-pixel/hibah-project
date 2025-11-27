@@ -7,16 +7,13 @@
 <title>@yield('title', 'Luminix PAM')</title>
 
 {{-- Bootstrap --}}
-
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
 {{-- Font --}}
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 {{-- FullCalendar --}}
-
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
 
 <style>
@@ -133,14 +130,23 @@ body {
                 <i class="bi bi-bar-chart"></i> Monitoring & Data
             </a>
             <ul class="dropdown-menu" aria-labelledby="monitoringDropdown">
+
+                {{-- SEMUA ROLE --}}
                 <li><a class="dropdown-item" href="{{ route('monitoring.proposalDikirim') }}">Proposal Dikirim</a></li>
                 <li><a class="dropdown-item" href="{{ route('monitoring.proposalDisetujui') }}">Proposal Disetujui</a></li>
                 <li><a class="dropdown-item" href="{{ route('monitoring.proposalDitolak') }}">Proposal Ditolak</a></li>
-                <li><a class="dropdown-item" href="{{ route('monitoring.proposalPerluDireview') }}">Proposal Perlu Direview</a></li>
-                <li><a class="dropdown-item" href="{{ route('monitoring.proposalSedangDireview') }}">Proposal Sedang Direview</a></li>
+
+                {{-- ADMIN & REVIEWER --}}
+                @if(Auth::user()->role !== 'pengaju')
+                    <li><a class="dropdown-item" href="{{ route('monitoring.proposalPerluDireview') }}">Proposal Perlu Direview</a></li>
+                    <li><a class="dropdown-item" href="{{ route('monitoring.proposalSedangDireview') }}">Proposal Sedang Direview</a></li>
+                @endif
+
+                {{-- SEMUA ROLE --}}
                 <li><a class="dropdown-item" href="{{ route('monitoring.reviewSelesai') }}">Review Selesai</a></li>
                 <li><a class="dropdown-item" href="{{ route('monitoring.hasilRevisi') }}">Hasil Revisi</a></li>
                 <li><a class="dropdown-item" href="{{ route('monitoring.proposalDirevisi') }}">Proposal Direvisi</a></li>
+
             </ul>
         </li>
 
@@ -242,7 +248,6 @@ body {
 </div>
 
 {{-- Scripts --}}
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js'></script>
 
