@@ -18,7 +18,7 @@ class ProposalController extends Controller
     }
 
     /**
-     * Halaman create (dipanggil route /proposal/create)
+     * Halaman create (redirect ke index)
      */
     public function create()
     {
@@ -26,42 +26,35 @@ class ProposalController extends Controller
     }
 
     /**
-     * Store proposal dari popup
+     * Store proposal dari form
      */
     public function store(Request $request)
     {
+        // Validasi input
         $request->validate([
-            'judul'       => 'required|string|max:255',
-            'nama_ketua'  => 'required|string|max:255',
-            'biaya'       => 'nullable|string|max:255',
-            'anggota'     => 'nullable|array',
-            'file'        => 'required|file|mimes:pdf,doc,docx|max:102400',
+            'judul'      => 'required|string|max:255',
+            'nama_ketua' => 'required|string|max:255',
+            'biaya'      => 'nullable|string|max:255',
+            'anggota'    => 'nullable|array',
+            'file'       => 'required|file|mimes:pdf,doc,docx|max:102400',
         ]);
-
-        /* ============================================
-           🔥 PERBAIKAN BAGIAN INI SAJA
-           Agar nama file TIDAK random seperti sebelumnya
-           ============================================ */
 
         // Ambil ekstensi asli file
         $extension = $request->file('file')->getClientOriginalExtension();
 
-        // Bersihkan judul biar aman jadi nama file
+        // Bersihkan judul untuk nama file
         $cleanName = preg_replace('/[^A-Za-z0-9\-]/', '', $request->judul);
 
-        // Buat nama file baru
+        // Nama file final
         $finalName = $cleanName . '.' . $extension;
 
-        // Simpan file dengan nama yang sudah dibersihkan
+        // Simpan file ke storage/public/proposal_files
         $filePath = $request->file('file')->storeAs('proposal_files', $finalName, 'public');
-
-        /* ============================================ */
-
 
         // Konversi anggota[] ke JSON
         $anggotaJson = $request->anggota ? json_encode($request->anggota) : null;
 
-        // Simpan ke database
+        // Simpan data ke database
         Proposal::create([
             'judul'          => $request->judul,
             'nama_ketua'     => $request->nama_ketua,
@@ -96,7 +89,6 @@ class ProposalController extends Controller
             return back()->with('error', 'File tidak ditemukan di server.');
         }
 
-        // Download menggunakan nama file yang benar
         return response()->download($path, basename($proposal->file_path));
     }
 }
