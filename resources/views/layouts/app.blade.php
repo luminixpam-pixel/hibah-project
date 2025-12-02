@@ -131,21 +131,61 @@ body {
             </a>
             <ul class="dropdown-menu" aria-labelledby="monitoringDropdown">
 
-                {{-- SEMUA ROLE --}}
-                <li><a class="dropdown-item" href="{{ route('monitoring.proposalDikirim') }}">Proposal Dikirim</a></li>
-                <li><a class="dropdown-item" href="{{ route('monitoring.proposalDisetujui') }}">Proposal Disetujui</a></li>
-                <li><a class="dropdown-item" href="{{ route('monitoring.proposalDitolak') }}">Proposal Ditolak</a></li>
+                {{-- 1. Proposal Dikirim (semua role) --}}
+                <li>
+                    <a class="dropdown-item" href="{{ route('monitoring.proposalDikirim') }}">
+                        Proposal Dikirim
+                    </a>
+                </li>
 
-                {{-- ADMIN & REVIEWER --}}
+                {{-- 2 & 3. Proposal Perlu / Sedang Direview (ADMIN & REVIEWER) --}}
                 @if(Auth::user()->role !== 'pengaju')
-                    <li><a class="dropdown-item" href="{{ route('monitoring.proposalPerluDireview') }}">Proposal Perlu Direview</a></li>
-                    <li><a class="dropdown-item" href="{{ route('monitoring.proposalSedangDireview') }}">Proposal Sedang Direview</a></li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('monitoring.proposalPerluDireview') }}">
+                            Proposal Perlu Direview
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('monitoring.proposalSedangDireview') }}">
+                            Proposal Sedang Direview
+                        </a>
+                    </li>
                 @endif
 
-                {{-- SEMUA ROLE --}}
-                <li><a class="dropdown-item" href="{{ route('monitoring.reviewSelesai') }}">Review Selesai</a></li>
-                <li><a class="dropdown-item" href="{{ route('monitoring.hasilRevisi') }}">Hasil Revisi</a></li>
-                <li><a class="dropdown-item" href="{{ route('monitoring.proposalDirevisi') }}">Proposal Direvisi</a></li>
+                {{-- 4. Review Selesai (semua role) --}}
+                <li>
+                    <a class="dropdown-item" href="{{ route('monitoring.reviewSelesai') }}">
+                        Review Selesai
+                    </a>
+                </li>
+
+                {{-- 5. Proposal Disetujui (semua role) --}}
+                <li>
+                    <a class="dropdown-item" href="{{ route('monitoring.proposalDisetujui') }}">
+                        Proposal Disetujui
+                    </a>
+                </li>
+
+                {{-- 6. Proposal Ditolak (semua role) --}}
+                <li>
+                    <a class="dropdown-item" href="{{ route('monitoring.proposalDitolak') }}">
+                        Proposal Ditolak
+                    </a>
+                </li>
+
+                {{-- 7. Proposal Direvisi (semua role) --}}
+                <li>
+                    <a class="dropdown-item" href="{{ route('monitoring.proposalDirevisi') }}">
+                        Proposal Direvisi
+                    </a>
+                </li>
+
+                {{-- 8. Hasil Revisi (semua role) --}}
+                <li>
+                    <a class="dropdown-item" href="{{ route('monitoring.hasilRevisi') }}">
+                        Hasil Revisi
+                    </a>
+                </li>
 
             </ul>
         </li>

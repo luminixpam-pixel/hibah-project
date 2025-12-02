@@ -9,11 +9,13 @@ use Illuminate\Support\Facades\Storage;
 class ProposalController extends Controller
 {
     /**
-     * Halaman daftar proposal
+     * Halaman daftar proposal (Proposal Dikirim)
      */
     public function index()
     {
-        $proposals = Proposal::latest()->get();
+        // ambil hanya proposal dengan status "Dikirim"
+        $proposals = Proposal::where('status', 'Dikirim')->latest()->get();
+
         return view('proposal.daftar_proposal', compact('proposals'));
     }
 
@@ -38,11 +40,6 @@ class ProposalController extends Controller
             'file'        => 'required|file|mimes:pdf,doc,docx|max:102400',
         ]);
 
-        /* ============================================
-           🔥 PERBAIKAN BAGIAN INI SAJA
-           Agar nama file TIDAK random seperti sebelumnya
-           ============================================ */
-
         // Ambil ekstensi asli file
         $extension = $request->file('file')->getClientOriginalExtension();
 
@@ -55,9 +52,6 @@ class ProposalController extends Controller
         // Simpan file dengan nama yang sudah dibersihkan
         $filePath = $request->file('file')->storeAs('proposal_files', $finalName, 'public');
 
-        /* ============================================ */
-
-
         // Konversi anggota[] ke JSON
         $anggotaJson = $request->anggota ? json_encode($request->anggota) : null;
 
@@ -68,7 +62,7 @@ class ProposalController extends Controller
             'file_path'      => $filePath,
             'anggota'        => $anggotaJson,
             'biaya'          => $request->biaya,
-            'status'         => 'Dikirim',
+            'status'         => 'Dikirim',      // ← perhatikan kapital D
             'periode'        => null,
             'fakultas_prodi' => null,
             'user_id'        => auth()->id(),
@@ -98,5 +92,31 @@ class ProposalController extends Controller
 
         // Download menggunakan nama file yang benar
         return response()->download($path, basename($proposal->file_path));
+    }
+
+    /**
+     * Pindahkan proposal ke status "Perlu Direview"
+     */
+    public function moveToPerluDireview(Proposal $proposal)
+    {
+        // hanya proposal dengan status Dikirim yang boleh dipindah (opsional)
+        if ($proposal->status !== 'Dikirim') {
+            return back()->with('error', 'Proposal ini tidak dalam status Dikirim.');
+        }
+
+        $proposal->status = 'Perlu Direview';
+        $proposal->save();
+
+        return back()->with('success', 'Proposal berhasil dipindahkan ke "Perlu Direview".');
+    }
+
+    /**
+     * Halaman daftar proposal yang Perlu Direview
+     */
+    public function proposalPerluDireview()
+    {
+        $proposals = Proposal::where('status', 'Perlu Direview')->latest()->get();
+
+        return view('proposal.proposal-perlu-direview', compact('proposals'));
     }
 }

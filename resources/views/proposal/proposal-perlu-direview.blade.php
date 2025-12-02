@@ -30,7 +30,7 @@
 
     {{-- TITLE --}}
     <h4 class="page-title mb-1"> Daftar Proposal Yang Perlu Direview — Universitas YARSI</h4>
-    <p class="page-subtitle mb-4">Berikut daftar seluruh proposal yang Perlu direview.</p>
+    <p class="page-subtitle mb-4">Berikut daftar seluruh proposal yang perlu direview.</p>
 
     {{-- TABLE --}}
     <div class="table-responsive">
@@ -46,30 +46,33 @@
             </thead>
 
             <tbody>
+                @forelse ($proposals as $index => $proposal)
                 <tr>
-                    <td>1</td>
-                    <td>Analisis Efektivitas Obat Herbal</td>
-                    <td>Prof. Pratiwi P. Sudarmono</td>
-                    <td>Dr. Ahmad Faisal</td>
+                    <td>{{ $index + 1 }}</td>
+
+                    {{-- Reviewer: belum ada kolomnya → sementara "-" --}}
+                    <td>{{ $proposal->reviewer ?? '-' }}</td>
+
+                    {{-- Pengusul (ketua) --}}
+                    <td>{{ $proposal->nama_ketua }}</td>
+
+                    {{-- Judul Proposal --}}
+                    <td>{{ $proposal->judul }}</td>
+
                     <td>
-                        <button class="btn btn-primary btn-action">
+                        <a href="#"
+                           class="btn btn-primary btn-action">
                             <i class="bi bi-download"></i> Beri Review
-                        </button>
+                        </a>
                     </td>
                 </tr>
-
+                @empty
                 <tr>
-                    <td>2</td>
-                    <td>Pemanfaatan AI untuk Deteksi Penyakit Kulit</td>
-                    <td>Dr. Ratna Sitompul</td>
-                    <td>Prof. Hartono</td>
-                    <td>
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Beri Review
-                        </button>
+                    <td colspan="5" class="text-center text-muted py-3">
+                        Belum ada proposal yang perlu direview.
                     </td>
                 </tr>
-
+                @endforelse
             </tbody>
         </table>
     </div>

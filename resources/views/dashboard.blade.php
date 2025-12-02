@@ -20,35 +20,39 @@
 {{-- =======================
     DASHBOARD CARD
 ======================== --}}
-<div class="row g-3 mb-4">
+@php
+    $role = Auth::user()->role;
 
-    @php
-        // Ambil role user
-        $role = Auth::user()->role;
+    $dashboardItems = [
+        // 1. Pengajuan awal
+        ['title' => 'Proposal Dikirim', 'count' => 25, 'route' => 'monitoring.proposalDikirim'],
 
-        // Semua card
-        $dashboardItems = [
-            ['title' => 'Proposal Dikirim', 'count' => 25, 'route' => 'monitoring.proposalDikirim'],
-            ['title' => 'Proposal Disetujui', 'count' => 25, 'route' => 'monitoring.proposalDisetujui'],
-            ['title' => 'Proposal Ditolak', 'count' => 0, 'route' => 'monitoring.proposalDitolak'],
-            ['title' => 'Hasil Revisi', 'count' => 0, 'route' => 'monitoring.hasilRevisi'],
-            ['title' => 'Proposal Perlu Direview', 'count' => 0, 'route' => 'monitoring.proposalPerluDireview'],
-            ['title' => 'Proposal Sedang Direview', 'count' => 0, 'route' => 'monitoring.proposalSedangDireview'],
-            ['title' => 'Review Selesai', 'count' => 0, 'route' => 'monitoring.reviewSelesai'],
-            ['title' => 'Proposal Direvisi', 'count' => 0, 'route' => 'monitoring.proposalDirevisi'],
-        ];
+        // 2. Masuk antrian & proses review
+        ['title' => 'Proposal Perlu Direview', 'count' => 0, 'route' => 'monitoring.proposalPerluDireview'],
+        ['title' => 'Proposal Sedang Direview', 'count' => 0, 'route' => 'monitoring.proposalSedangDireview'],
+        ['title' => 'Review Selesai', 'count' => 0, 'route' => 'monitoring.reviewSelesai'],
 
-        // Jika role = pengaju → hapus 2 card
-        if ($role === 'pengaju') {
-            $dashboardItems = array_filter($dashboardItems, function ($item) {
-                return $item['title'] !== 'Proposal Perlu Direview'
-                    && $item['title'] !== 'Proposal Sedang Direview';
-            });
-        }
-    @endphp
+        // 3. Hasil review
+        ['title' => 'Proposal Disetujui', 'count' => 25, 'route' => 'monitoring.proposalDisetujui'],
+        ['title' => 'Proposal Ditolak', 'count' => 0, 'route' => 'monitoring.proposalDitolak'],
 
+        // 4. Revisi setelah hasil review
+        ['title' => 'Proposal Direvisi', 'count' => 0, 'route' => 'monitoring.proposalDirevisi'],
+        ['title' => 'Hasil Revisi', 'count' => 0, 'route' => 'monitoring.hasilRevisi'],
+    ];
+
+    // Hapus 2 card khusus pengaju
+    if ($role === 'pengaju') {
+        $dashboardItems = array_filter($dashboardItems, function ($item) {
+            return $item['title'] !== 'Proposal Perlu Direview'
+                && $item['title'] !== 'Proposal Sedang Direview';
+        });
+    }
+@endphp
+
+<div class="row g-3 mb-4 {{ $role === 'pengaju' ? 'justify-content-center' : '' }}">
     @foreach ($dashboardItems as $item)
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <a href="{{ route($item['route']) }}" class="text-decoration-none">
                 <div class="card text-center p-3 border shadow-sm h-100">
                     <h6 class="mb-2 text-dark">{{ $item['title'] }}</h6>
@@ -58,6 +62,7 @@
         </div>
     @endforeach
 </div>
+
 
 {{-- =======================
     PROFIL PENGGUNA
@@ -80,8 +85,7 @@
 </div>
 
 {{-- =======================
-POPUP AJUKAN PROPOSAL
-DI LUAR CONTAINER
+    POPUP AJUKAN PROPOSAL
 ======================== --}}
 @if(Auth::user()->role === 'pengaju')
 <div id="proposalPopup" class="popup-overlay">
@@ -89,40 +93,41 @@ DI LUAR CONTAINER
         <div class="popup-content">
             <span class="close-popup" id="closePopupBtn">&times;</span>
 
-        <form action="{{ route('proposal.store') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <div class="mb-3">
-                <label class="form-label">Nama Ketua</label>
-                <input type="text" name="nama_ketua" class="form-control" required placeholder="Masukkan nama ketua">
-            </div>
+            <form action="{{ route('proposal.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
 
-            <div class="mb-3">
-                <label class="form-label">Anggota</label>
-                <div id="anggota-container">
-                    <div class="d-flex gap-2 mb-2 anggota-row">
-                        <input type="text" name="anggota[]" class="form-control" placeholder="Masukkan nama anggota">
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Nama Ketua</label>
+                    <input type="text" name="nama_ketua" class="form-control" required>
                 </div>
-                <button type="button" class="btn btn-sm btn-primary mt-2" id="addAnggotaBtn">+ Tambah Anggota</button>
-            </div>
 
-            <div class="mb-3">
-                <label class="form-label">Biaya</label>
-                <input type="text" name="biaya" class="form-control" placeholder="Masukkan biaya">
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Anggota</label>
+                    <div id="anggota-container">
+                        <div class="d-flex gap-2 mb-2 anggota-row">
+                            <input type="text" name="anggota[]" class="form-control">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary mt-2" id="addAnggotaBtn">+ Tambah Anggota</button>
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">Judul Proposal</label>
-                <input type="text" name="judul" class="form-control" placeholder="Masukkan judul proposal">
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Biaya</label>
+                    <input type="text" name="biaya" class="form-control">
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">File Proposal</label>
-                <input type="file" name="file" class="form-control">
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Judul Proposal</label>
+                    <input type="text" name="judul" class="form-control">
+                </div>
 
-            <button class="btn btn-success w-100" type="submit">Kirim Proposal</button>
-        </form>
+                <div class="mb-3">
+                    <label class="form-label">File Proposal</label>
+                    <input type="file" name="file" class="form-control">
+                </div>
+
+                <button class="btn btn-success w-100" type="submit">Kirim Proposal</button>
+            </form>
 
         </div>
     </div>
@@ -168,7 +173,7 @@ DI LUAR CONTAINER
     opacity: 1;
 }
 
-.popup-content .close-popup {
+.close-popup {
     position: absolute;
     top: 12px;
     right: 15px;
@@ -177,14 +182,14 @@ DI LUAR CONTAINER
     color: #444;
 }
 
-.popup-content .close-popup:hover { color: red; }
+.close-popup:hover { color: red; }
 </style>
 @endpush
-
 
 @push('scripts')
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+
     const openBtn = document.getElementById("openPopupBtn");
     const closeBtn = document.getElementById("closePopupBtn");
     const popup = document.getElementById("proposalPopup");
@@ -212,6 +217,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Tambah anggota dinamis
     const anggotaContainer = document.getElementById("anggota-container");
     const addBtn = document.getElementById("addAnggotaBtn");
 
@@ -220,7 +226,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const div = document.createElement("div");
             div.classList.add("d-flex", "gap-2", "mb-2", "anggota-row");
             div.innerHTML = `
-                <input type="text" name="anggota[]" class="form-control" placeholder="Masukkan nama anggota">
+                <input type="text" name="anggota[]" class="form-control">
                 <button type="button" class="btn btn-danger btn-sm remove-anggota">Hapus</button>
             `;
             anggotaContainer.appendChild(div);
@@ -232,6 +238,7 @@ document.addEventListener("DOMContentLoaded", function () {
             e.target.parentElement.remove();
         }
     });
+
 });
 </script>
 @endpush

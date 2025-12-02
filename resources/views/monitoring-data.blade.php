@@ -4,11 +4,11 @@
 
 <div class="container py-4">
 
-<h3 class="fw-bold mb-4">📊 KALENDER</h3>
+<h3 class="fw-bold mb-4">KALENDER</h3>
 
 <!-- TIMELINE -->
 <div class="card-custom mb-4">
-    <h5 class="fw-bold mb-3">📅 Kalender Timeline</h5>
+    <h5 class="fw-bold mb-3">Kalender Lemlit</h5>
 
     <div class="row">
         <div class="col-md-6">
