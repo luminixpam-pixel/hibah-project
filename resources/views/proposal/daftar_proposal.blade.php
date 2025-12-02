@@ -1,51 +1,26 @@
 @extends('layouts.app')
 
 @section('content')
-
 <div class="container mt-4">
 
-    <h4 class="fw-bold">Daftar Proposal Hibah Internal Universitas YARSI</h4>
-
-    <div class="card mt-4">
-        <div class="card-body">
-            <div class="row">
-
-                <div class="col-md-6">
-                    <p class="fw-semibold text-success">Filter Berdasarkan:</p>
-
-                    <label>Periode Hibah</label>
-                    <select class="form-select mb-3">
-                        <option>Semester Genap 2025 / Tahun 2025</option>
-                        <option>Semester Ganjil 2025</option>
-                    </select>
-                </div>
-
-                <div class="col-md-6">
-                    <p class="fw-semibold text-success">Filter Berdasarkan:</p>
-
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="filter" checked>
-                        <label class="form-check-label">Fakultas</label>
-                    </div>
-
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="filter">
-                        <label class="form-check-label">Prodi</label>
-                    </div>
-
-                    <button class="btn btn-success mt-3 px-4">Cari</button>
-                </div>
-
-            </div>
+    {{-- NOTIFIKASI ERROR VALIDASI --}}
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    </div>
+    @endif
 
     {{-- TOAST SUKSES — kecil & auto hide 3 detik --}}
     @if (session('success'))
         <div id="toastSuccess"
-            class="toast align-items-center text-white bg-success border-0 position-fixed"
-            style="top: 20px; right: 20px; z-index: 9999;"
-            role="alert">
+             class="toast align-items-center text-white bg-success border-0 position-fixed"
+             style="top: 20px; right: 20px; z-index: 9999;"
+             role="alert">
 
             <div class="d-flex">
                 <div class="toast-body">
@@ -56,9 +31,11 @@
     @endif
 
     @php
+        // role user login
         $role = Auth::user()->role ?? null;
     @endphp
 
+    {{-- TABEL DAFTAR PROPOSAL --}}
     <div class="table-responsive mt-4">
         <table class="table table-bordered align-middle">
             <thead class="table-light">
@@ -108,15 +85,26 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="text-center text-muted">Belum ada proposal yang dikirim.</td>
+                    <td colspan="4" class="text-center text-muted">Belum ada proposal yang dikirim.</td>
                 </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
-
 </div>
 
+{{-- Script Auto-Close Alert 2,5 detik --}}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 2500);
+    });
+});
+</script>
 @endsection
 
 @push('scripts')
