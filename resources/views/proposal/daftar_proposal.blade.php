@@ -60,7 +60,8 @@
                             {{-- Download file --}}
                             @if ($proposal->file_path)
                                 <a href="{{ route('proposal.download', $proposal->id) }}"
-                                   class="btn btn-sm btn-outline-primary">
+                                   class="btn btn-sm btn-outline-primary"
+                                   download>
                                     Download
                                 </a>
                             @else

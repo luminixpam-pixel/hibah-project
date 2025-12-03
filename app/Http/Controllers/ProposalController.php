@@ -31,7 +31,7 @@ class ProposalController extends Controller
      * Store proposal dari form
      */
     public function store(Request $request)
-    {
+     {
         // Validasi input
         $request->validate([
             'judul'      => 'required|string|max:255',

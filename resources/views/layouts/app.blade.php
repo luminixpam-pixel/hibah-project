@@ -131,10 +131,10 @@ body {
             </a>
             <ul class="dropdown-menu" aria-labelledby="monitoringDropdown">
 
-                {{-- 1. Proposal Dikirim (semua role) --}}
+                {{-- 1. Daftar Proposal (semua role) --}}
                 <li>
                     <a class="dropdown-item" href="{{ route('monitoring.proposalDikirim') }}">
-                        Proposal Dikirim
+                        Daftar Proposal
                     </a>
                 </li>
 

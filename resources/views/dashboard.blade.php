@@ -25,7 +25,7 @@
 
     $dashboardItems = [
         // 1. Pengajuan awal
-        ['title' => 'Proposal Dikirim', 'count' => 25, 'route' => 'monitoring.proposalDikirim'],
+        ['title' => 'Daftar Proposal', 'count' => 25, 'route' => 'monitoring.proposalDikirim'],
 
         // 2. Masuk antrian & proses review
         ['title' => 'Proposal Perlu Direview', 'count' => 0, 'route' => 'monitoring.proposalPerluDireview'],

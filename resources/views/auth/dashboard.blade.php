@@ -86,7 +86,7 @@
 
         <div class="col-md-3">
             <div class="card-stat p-3">
-                <h6>Proposal Dikirim</h6>
+                <h6>Daftar Proposal</h6>
                 <p class="mb-0 fw-bold">25</p>
                 <i class="bi bi-send"></i>
             </div>
