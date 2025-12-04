@@ -15,25 +15,27 @@
         </div>
     @endif
 
-    {{-- TOAST SUKSES — kecil & auto hide 3 detik --}}
-    @if (session('success'))
-        <div id="toastSuccess"
-             class="toast align-items-center text-white bg-success border-0 position-fixed"
-             style="top: 20px; right: 20px; z-index: 9999;"
-             role="alert">
-
-            <div class="d-flex">
-                <div class="toast-body">
-                    {{ session('success') }}
+    {{-- Form Upload Proposal --}}
+    <div class="card mt-4">
+        <div class="card-body">
+            <form action="{{ route('proposal.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-3">
+                    <label for="judul" class="form-label">Judul Proposal</label>
+                    <input type="text" class="form-control" id="judul" name="judul" value="{{ old('judul') }}" required>
                 </div>
-            </div>
+                <div class="mb-3">
+                    <label for="nama_ketua" class="form-label">Nama Ketua</label>
+                    <input type="text" class="form-control" id="nama_ketua" name="nama_ketua" value="{{ old('nama_ketua') }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="file" class="form-label">Upload File (PDF/DOC/DOCX)</label>
+                    <input type="file" class="form-control" id="file" name="file" required>
+                </div>
+                <button type="submit" class="btn btn-success">Kirim Proposal</button>
+            </form>
         </div>
-    @endif
-
-    @php
-        // role user login
-        $role = Auth::user()->role ?? null;
-    @endphp
+    </div>
 
     {{-- TABEL DAFTAR PROPOSAL --}}
     <div class="table-responsive mt-4">
