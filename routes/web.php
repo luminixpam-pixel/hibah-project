@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProposalController;
+use App\Http\Controllers\ReviewerController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,7 +52,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/timeline', fn() => view('timeline'))->name('timeline');
     Route::get('/monitoring-data', fn() => view('monitoring.index'))->name('monitoring.data');
     Route::get('/monitoring/data', fn() => view('monitoring.data'))->name('monitoring.data2');
+    Route::get('/admin/hasil-review', [AdminController::class, 'hasilReview'])->name('admin.hasil-review');
+
 });
+
 
 /*
 |--------------------------------------------------------------------------
@@ -130,9 +136,20 @@ Route::middleware(['auth'])->group(function () {
 | REVIEWER ONLY
 |--------------------------------------------------------------------------
 */
+// REVIEWER ONLY
+Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])
+    ->whereNumber('id')
+    ->name('reviewer.isi-review');
 Route::middleware(['auth', 'role:reviewer'])->group(function () {
-    Route::get('/reviewer/isi-review', fn() => view('reviewer.isi-review'))->name('reviewer.isi-review');
+    Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])
+        ->name('reviewer.isi-review');
+
+    Route::post('/reviewer/isi-review/{id}', [ReviewerController::class, 'submitReview'])
+        ->name('reviewer.submitReview');
 });
+Route::post('/review/{id}/simpan', [ReviewerController::class, 'simpanReview'])->name('review.simpan');
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -144,3 +161,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 });
+
+//notifikasi
+Route::get('/notifications/fetch', [NotificationController::class, 'fetch'])->name('notifications.fetch')->middleware('auth');

@@ -48,4 +48,8 @@ class User extends Authenticatable
             default => ucfirst($this->role),
         };
     }
+     public function notifications()
+    {
+        return $this->hasMany(\App\Models\Notification::class, 'user_id');
+    }
 }

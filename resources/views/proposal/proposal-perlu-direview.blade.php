@@ -78,9 +78,8 @@
                     <td>{{ $proposal->judul }}</td>
 
                     <td>
-                        <a href="#"
-                           class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Beri Review
+                        <a href="{{ route('reviewer.isi-review', $proposal->id) }}" class="btn btn-success btn-sm">
+                            Beri Review
                         </a>
                     </td>
                 </tr>
@@ -98,4 +97,3 @@
 </div>
 
 @endsection
-    

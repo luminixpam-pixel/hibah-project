@@ -32,39 +32,32 @@ class ProposalController extends Controller
      * Store proposal dari form
      */
     public function store(Request $request)
-    {
-        // Validasi input
-        $request->validate([
-            'judul'      => 'required|string|max:255',
-            'nama_ketua' => 'required|string|max:255',
-            'biaya'      => 'nullable|string|max:255',
-            'anggota'    => 'nullable|array',
-            'file'       => 'required|file|mimes:pdf,doc,docx|max:102400',
-        ]);
+{
+    $request->validate([
+        'judul'      => 'required|string|max:255',
+        'nama_ketua' => 'required|string|max:255',
+        'biaya'      => 'nullable|string|max:255',
+        'anggota'    => 'nullable|array',
+        'file'       => 'required|file|mimes:pdf,doc,docx|max:102400',
+    ]);
 
+    try {
         // Ambil ekstensi asli file
         $extension = $request->file('file')->getClientOriginalExtension();
-
-        // Bersihkan judul untuk nama file
         $cleanName = preg_replace('/[^A-Za-z0-9\-]/', '', $request->judul);
-
-        // Nama file final
         $finalName = $cleanName . '.' . $extension;
 
-        // Simpan file ke storage/public/proposal_files
+        // Simpan file
         $filePath = $request->file('file')->storeAs('proposal_files', $finalName, 'public');
 
-        // Konversi anggota[] ke JSON
-        $anggotaJson = $request->anggota ? json_encode($request->anggota) : null;
-
-        // Simpan data ke database
-        Proposal::create([
+        // Simpan data proposal
+        $proposal = Proposal::create([
             'judul'          => $request->judul,
             'nama_ketua'     => $request->nama_ketua,
             'file_path'      => $filePath,
-            'anggota'        => $anggotaJson,
+            'anggota'        => $request->anggota ? json_encode($request->anggota) : null,
             'biaya'          => $request->biaya,
-            'status'         => 'Dikirim',      // ← perhatikan kapital D
+            'status'         => 'Dikirim',
             'periode'        => null,
             'fakultas_prodi' => null,
             'user_id'        => auth()->id(),
@@ -72,8 +65,20 @@ class ProposalController extends Controller
             'reviewer'       => null,
         ]);
 
+        // Notifikasi otomatis ke user login
+        auth()->user()->notifications()->create([
+            'title' => 'Proposal Anda berhasil dikirim',
+            'type' => 'success',
+            'is_read' => false,
+        ]);
+
         return redirect()->route('proposal.index')->with('success', 'Proposal berhasil diajukan!');
+
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Gagal upload proposal: ' . $e->getMessage());
     }
+}
+
 
     /**
      * Download file proposal

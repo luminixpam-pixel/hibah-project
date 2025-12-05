@@ -6,114 +6,92 @@
     {{-- Breadcrumb / Judul --}}
     <h4 class="fw-bold mb-1">Isi Review dan Penilaian</h4>
     <p class="text-muted" style="margin-top:-6px;">
-        Reviewer Peneliti: Prof.dr. Pratiwi Pujilestari Sudarmono, Ph.D, Sp.M.K (K)
+        Reviewer: {{ auth()->user()->name }} <br>
+        Pengusul: <strong>{{ $proposal->nama_ketua }}</strong> <br>
+        Judul Proposal: <strong>{{ $proposal->judul }}</strong>
     </p>
 
     {{-- Tombol Download --}}
     <div class="text-end mb-3">
-        <a class="btn btn-success btn-sm">
+        <a href="{{ route('proposal.download', $proposal->id) }}" class="btn btn-success btn-sm">
             <i class="bi bi-download"></i> Download Proposal
         </a>
     </div>
 
-    {{-- TABEL PENILAIAN --}}
-    <div class="table-responsive">
-        <table class="table table-bordered align-middle text-center">
-            <thead class="table-success">
-                <tr>
-                    <th>KOMPONEN</th>
-                    <th>BOBOT</th>
-                    <th>NILAI</th>
-                    <th>SCORE</th>
-                </tr>
-            </thead>
+    {{-- FORM REVIEW --}}
+    <form action="{{ route('review.simpan', $proposal->id) }}" method="POST">
+        @csrf
 
-            <tbody>
-                <tr>
-                    <td class="text-start">
-                        Pengaruh Faktor Demografi, Locus Of Control, Need For Achievement, Literasi Keuangan, Dan Inklusi Keuangan Terhadap Kinerja Keuangan UMkm Di Kota Malang
-                    </td>
-                    <td>5</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
+        {{-- TABEL PENILAIAN --}}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle text-center">
+                <thead class="table-success">
+                    <tr>
+                        <th>KOMPONEN</th>
+                        <th>BOBOT</th>
+                        <th>NILAI</th>
+                        <th>SCORE</th>
+                        <th>KOMENTAR</th>
+                    </tr>
+                </thead>
 
-                <tr>
-                    <td class="text-start">
-                        Belum ada penjelasan tentang Kenapa memilih rumusan masalah tersebut? karena rumusan masalah tidak fokus maka dalam pendahuluan tampak tidak fokus.
-                    </td>
-                    <td>5</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
+                <tbody>
+                    @php
+                        $components = [
+                            'Pengaruh Faktor Demografi, Locus Of Control, Need For Achievement, Literasi Keuangan, Dan Inklusi Keuangan Terhadap Kinerja Keuangan UMkm Di Kota Malang',
+                            'Belum ada penjelasan tentang Kenapa memilih rumusan masalah tersebut? karena rumusan masalah tidak fokus maka dalam pendahuluan tampak tidak fokus.',
+                            'Belum ada penjelasan tentang Kenapa memilih rumusan masalah tersebut? karena rumusan masalah tidak fokus maka dalam pendahuluan tampak tidak fokus.',
+                            'Rumusan masalah tidak fokus, hemat saya cukup nomor satu saja. Dan variabelnya juga independennya (demografi) juga belum jelas, di antara sekian variabel yang disebutkan.',
+                            'Sesuaikan dengan rumusan masalah.',
+                            'Kebaruan itu terlihat ditelaah pustaka. Dan belum ditemukan di sini. Kerangka teori masih berupa penjelasan konsep. Belum jelas apakah riset ini mau meneguhkan...',
+                            '1. Teknis sampling-nya belum ada.<br>2. Peta konsep riset juga belum tampak.'
+                        ];
+                        $bobot = [5,5,5,3,5,5,10];
+                    @endphp
 
-                <tr>
-                    <td class="text-start">
-                        Belum ada penjelasan tentang Kenapa memilih rumusan masalah tersebut? karena rumusan masalah tidak fokus maka dalam pendahuluan tampak tidak fokus.
-                    </td>
-                    <td>5</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
+                    @foreach($components as $index => $comp)
+                    <tr>
+                        <td class="text-start">{!! $comp !!}</td>
+                        <td>{{ $bobot[$index] }}</td>
+                        <td>
+                            <input type="number" name="nilai_{{ $index + 1 }}" class="form-control form-control-sm">
+                        </td>
+                        <td id="score_{{ $index + 1 }}">-</td>
+                        <td>
+                            <input type="text" name="komentar_{{ $index + 1 }}" class="form-control form-control-sm" placeholder="Tulis komentar...">
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
 
-                <tr>
-                    <td class="text-start">
-                        Rumusan masalah tidak fokus, hemat saya cukup nomer satu saja. Dan variabelnya juga independennya (demografi) juga belum jelas, diantara sekian variabel yang disebutkan.
-                    </td>
-                    <td>3</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
+        {{-- TOTAL NILAI --}}
+        <div class="mt-3 p-3 rounded" style="background:#e6ffe6; border:1px solid #c8e8c8;">
+            <h5 class="fw-bold">Total Nilai: <span id="total_nilai">0</span></h5>
+        </div>
 
-                <tr>
-                    <td class="text-start">sesuaikan dengan rumusan masalah</td>
-                    <td>5</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
+        {{-- CATATAN UMUM --}}
+        <div class="mt-3 p-3 rounded" style="background:#f2fff1; border:1px solid #cfeccc;">
+            <strong>Catatan:</strong><br>
+            Skor: 0–5<br>
+            Nilai = Bobot × Skor
+            <br><br>
+            <strong>Rentang Nilai:</strong><br>
+            • Baik Sekali: 401 - 500 <br>
+            • Baik: 301 - 400 <br>
+            • Sedang: 201 - 300 <br>
+            • Kurang: 101 - 200 <br>
+            • Sangat Kurang: 0 - 90
+        </div>
 
-                <tr>
-                    <td class="text-start">
-                        Kebaruan itu terlihat ditelaah pustaka. Dan belum ditemukan disini. kerangka teori masih berupa penjelasan konsep. Belum jelas apakah riset ini mau meneguhkan...
-                    </td>
-                    <td>5</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-
-                <tr>
-                    <td class="text-start">
-                        1. teknis sampling nya belum ada.<br>
-                        2. peta konsep riset juga belum tampak
-                    </td>
-                    <td>10</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    {{-- CATATAN --}}
-    <div class="mt-3 p-3 rounded" style="background:#f2fff1; border:1px solid #cfeccc;">
-        <strong>Catatan:</strong><br>
-        Skor: 0, 1, 2, 3, 4, 5<br>
-        Nilai = Bobot × Skor
-        <br><br>
-        <strong>Rentang Nilai:</strong><br>
-        • Baik Sekali: 401 - 500<br>
-        • Baik: 301 - 400<br>
-        • Sedang: 201 - 300<br>
-        • Kurang: 101 - 200<br>
-        • Sangat Kurang: 0 - 90
-    </div>
-
-    {{-- TOMBOL DOWNLOAD --}}
-    <div class="text-end mt-3">
-        <button class="btn btn-success">
-            <i class="bi bi-download"></i> Download
-        </button>
-    </div>
+        {{-- TOMBOL SUBMIT --}}
+        <div class="text-end mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Simpan Review
+            </button>
+        </div>
+    </form>
 
     {{-- TOMBOL NAVIGASI --}}
     <div class="d-flex justify-content-between my-4">
@@ -125,6 +103,29 @@
             <i class="bi bi-chevron-left"></i> Sedang Direview
         </a>
     </div>
+
+    {{-- SCRIPT PERHITUNGAN --}}
+    <script>
+        const bobot = @json($bobot);
+
+        function hitung() {
+            let total = 0;
+
+            for (let i = 1; i <= bobot.length; i++) {
+                let nilai = parseInt(document.querySelector(`input[name=nilai_${i}]`).value) || 0;
+                let score = nilai * bobot[i - 1];
+
+                document.getElementById("score_" + i).innerText = score;
+                total += score;
+            }
+
+            document.getElementById("total_nilai").innerText = total;
+        }
+
+        document.querySelectorAll("input[type=number]").forEach(el => {
+            el.addEventListener("input", hitung);
+        });
+    </script>
 
 </div>
 @endsection

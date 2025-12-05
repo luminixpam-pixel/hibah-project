@@ -1,4 +1,8 @@
 @extends('layouts.app')
+@php
+    $role = Auth::user()->role ?? null;
+@endphp
+
 
 @section('content')
 <div class="container mt-4">
@@ -14,28 +18,6 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-
-    {{-- Form Upload Proposal --}}
-    <div class="card mt-4">
-        <div class="card-body">
-            <form action="{{ route('proposal.store') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="mb-3">
-                    <label for="judul" class="form-label">Judul Proposal</label>
-                    <input type="text" class="form-control" id="judul" name="judul" value="{{ old('judul') }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="nama_ketua" class="form-label">Nama Ketua</label>
-                    <input type="text" class="form-control" id="nama_ketua" name="nama_ketua" value="{{ old('nama_ketua') }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="file" class="form-label">Upload File (PDF/DOC/DOCX)</label>
-                    <input type="file" class="form-control" id="file" name="file" required>
-                </div>
-                <button type="submit" class="btn btn-success">Kirim Proposal</button>
-            </form>
-        </div>
-    </div>
 
     {{-- TABEL DAFTAR PROPOSAL --}}
     <div class="table-responsive mt-4">
@@ -78,7 +60,7 @@
                                     @csrf
                                     @method('PATCH')
                                     <button type="submit" class="btn btn-sm btn-success">
-                                        Kirim ke Perlu Direview
+                                        Kirim ke Perlu direview
                                     </button>
                                 </form>
                             @endif
