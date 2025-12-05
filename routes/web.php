@@ -80,22 +80,26 @@ Route::middleware(['auth'])->group(function () {
 */
 Route::middleware(['auth', 'role:admin,reviewer'])->group(function () {
 
-    // ⬇⬇⬇ PERUBAHAN DI SINI: dari closure -> pakai controller
+    // pakai controller, bukan closure
     Route::get(
         '/proposal-perlu-direview',
         [ProposalController::class, 'proposalPerluDireview']
     )->name('monitoring.proposalPerluDireview');
-    // ⬆⬆⬆
 
     Route::get('/proposal-sedang-direview', fn() => view('proposal.proposal-sedang-direview'))
         ->name('monitoring.proposalSedangDireview');
 
-    // ⬇⬇⬇ ROUTE BARU: pindahkan proposal ke "Perlu Direview"
+    // pindahkan proposal ke "Perlu Direview"
     Route::patch(
         '/proposal/{proposal}/perlu-direview',
         [ProposalController::class, 'moveToPerluDireview']
     )->name('proposal.moveToPerluDireview');
-    // ⬆⬆⬆
+
+    // set / ganti reviewer untuk proposal
+    Route::patch(
+        '/proposal-perlu-direview/{proposal}/assign-reviewer',
+        [ProposalController::class, 'assignReviewer']
+    )->name('proposal.assignReviewer');
 });
 
 /*

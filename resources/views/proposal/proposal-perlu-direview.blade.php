@@ -50,8 +50,26 @@
                 <tr>
                     <td>{{ $index + 1 }}</td>
 
-                    {{-- Reviewer: belum ada kolomnya → sementara "-" --}}
-                    <td>{{ $proposal->reviewer ?? '-' }}</td>
+                    {{-- REVIEWER: dropdown pilih reviewer --}}
+                    <td>
+                        <form action="{{ route('proposal.assignReviewer', $proposal->id) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
+
+                            <select name="reviewer"
+                                    class="form-select form-select-sm"
+                                    onchange="this.form.submit()">
+                                <option value="">- Pilih Reviewer -</option>
+
+                                @foreach ($reviewers as $rev)
+                                    <option value="{{ $rev->name }}"
+                                        {{ $proposal->reviewer == $rev->name ? 'selected' : '' }}>
+                                        {{ $rev->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </form>
+                    </td>
 
                     {{-- Pengusul (ketua) --}}
                     <td>{{ $proposal->nama_ketua }}</td>
@@ -80,3 +98,4 @@
 </div>
 
 @endsection
+    

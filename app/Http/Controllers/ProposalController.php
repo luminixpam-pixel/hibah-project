@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Proposal;
+use App\Models\User; // <-- tambah: untuk ambil data reviewer
 use Illuminate\Support\Facades\Storage;
 
 class ProposalController extends Controller
@@ -31,7 +32,7 @@ class ProposalController extends Controller
      * Store proposal dari form
      */
     public function store(Request $request)
-     {
+    {
         // Validasi input
         $request->validate([
             'judul'      => 'required|string|max:255',
@@ -115,8 +116,28 @@ class ProposalController extends Controller
      */
     public function proposalPerluDireview()
     {
+        // semua proposal dengan status "Perlu Direview"
         $proposals = Proposal::where('status', 'Perlu Direview')->latest()->get();
 
-        return view('proposal.proposal-perlu-direview', compact('proposals'));
+        // semua user yang berperan sebagai reviewer
+        $reviewers = User::where('role', 'reviewer')->orderBy('name')->get();
+
+        return view('proposal.proposal-perlu-direview', compact('proposals', 'reviewers'));
+    }
+
+    /**
+     * Set / ganti reviewer untuk 1 proposal
+     */
+    public function assignReviewer(Request $request, Proposal $proposal)
+    {
+        $request->validate([
+            'reviewer' => 'nullable|string|max:255',
+        ]);
+
+        // kalau dropdown dikosongkan, reviewer = null
+        $proposal->reviewer = $request->reviewer ?: null;
+        $proposal->save();
+
+        return back()->with('success', 'Reviewer berhasil diperbarui!');
     }
 }

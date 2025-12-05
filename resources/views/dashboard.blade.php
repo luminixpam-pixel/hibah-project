@@ -17,6 +17,19 @@
 
 </div>
 
+{{-- 🔴 TOAST ERROR FORMAT FILE (untuk popup upload di dashboard) --}}
+<div id="toastFileError"
+     class="toast align-items-center text-white bg-danger border-0 position-fixed"
+     style="top: 70px; right: 20px; z-index: 99999; display:none;"
+     role="alert">
+    <div class="d-flex">
+        <div class="toast-body">
+            Format file tidak valid! Hanya PDF atau Word (DOC/DOCX) yang diperbolehkan.
+        </div>
+    </div>
+</div>
+{{-- 🔴 TOAST SELESAI --}}
+
 {{-- =======================
     DASHBOARD CARD
 ======================== --}}
@@ -25,20 +38,52 @@
 
     $dashboardItems = [
         // 1. Pengajuan awal
-        ['title' => 'Daftar Proposal', 'count' => 25, 'route' => 'monitoring.proposalDikirim'],
+        [
+            'title' => 'Daftar Proposal',
+            'count' => $daftarProposalCount ?? 0,
+            'route' => 'monitoring.proposalDikirim',
+        ],
 
         // 2. Masuk antrian & proses review
-        ['title' => 'Proposal Perlu Direview', 'count' => 0, 'route' => 'monitoring.proposalPerluDireview'],
-        ['title' => 'Proposal Sedang Direview', 'count' => 0, 'route' => 'monitoring.proposalSedangDireview'],
-        ['title' => 'Review Selesai', 'count' => 0, 'route' => 'monitoring.reviewSelesai'],
+        [
+            'title' => 'Proposal Perlu Direview',
+            'count' => $perluDireviewCount ?? 0,
+            'route' => 'monitoring.proposalPerluDireview'
+        ],
+        [
+            'title' => 'Proposal Sedang Direview',
+            'count' => $sedangDireviewCount ?? 0,
+            'route' => 'monitoring.proposalSedangDireview'
+        ],
+        [
+            'title' => 'Review Selesai',
+            'count' => $reviewSelesaiCount ?? 0,
+            'route' => 'monitoring.reviewSelesai'
+        ],
 
         // 3. Hasil review
-        ['title' => 'Proposal Disetujui', 'count' => 25, 'route' => 'monitoring.proposalDisetujui'],
-        ['title' => 'Proposal Ditolak', 'count' => 0, 'route' => 'monitoring.proposalDitolak'],
+        [
+            'title' => 'Proposal Disetujui',
+            'count' => $disetujuiCount ?? 0,
+            'route' => 'monitoring.proposalDisetujui'
+        ],
+        [
+            'title' => 'Proposal Ditolak',
+            'count' => $ditolakCount ?? 0,
+            'route' => 'monitoring.proposalDitolak'
+        ],
 
         // 4. Revisi setelah hasil review
-        ['title' => 'Proposal Direvisi', 'count' => 0, 'route' => 'monitoring.proposalDirevisi'],
-        ['title' => 'Hasil Revisi', 'count' => 0, 'route' => 'monitoring.hasilRevisi'],
+        [
+            'title' => 'Proposal Direvisi',
+            'count' => $direvisiCount ?? 0,
+            'route' => 'monitoring.proposalDirevisi'
+        ],
+        [
+            'title' => 'Hasil Revisi',
+            'count' => $hasilRevisiCount ?? 0,
+            'route' => 'monitoring.hasilRevisi'
+        ],
     ];
 
     // Hapus 2 card khusus pengaju
@@ -123,7 +168,8 @@
 
                 <div class="mb-3">
                     <label class="form-label">File Proposal</label>
-                    <input type="file" name="file" class="form-control">
+                    {{-- batasi pilihan di dialog: hanya pdf/doc/docx --}}
+                    <input type="file" name="file" class="form-control" accept=".pdf,.doc,.docx">
                 </div>
 
                 <button class="btn btn-success w-100" type="submit">Kirim Proposal</button>
@@ -238,6 +284,45 @@ document.addEventListener("DOMContentLoaded", function () {
             e.target.parentElement.remove();
         }
     });
+
+});
+</script>
+@endpush
+
+{{-- script tambahan khusus cek tipe file dan munculin toast error --}}
+@push('scripts')
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const fileInput = document.querySelector('#proposalPopup input[name="file"]');
+    const toastFileError = document.getElementById("toastFileError");
+
+    if (fileInput && toastFileError) {
+        fileInput.addEventListener("change", function () {
+            if (!this.files.length) return;
+
+            const allowed = ['pdf', 'doc', 'docx'];
+            const filename = this.files[0].name.toLowerCase();
+            const ext = filename.split('.').pop();
+
+            if (!allowed.includes(ext)) {
+
+                // reset input
+                this.value = "";
+
+                // tampilkan toast
+                toastFileError.style.display = "block";
+
+                let toast = new bootstrap.Toast(toastFileError, { delay: 3000 });
+                toast.show();
+
+                // sembunyikan setelah selesai
+                setTimeout(() => {
+                    toastFileError.style.display = "none";
+                }, 3500);
+            }
+        });
+    }
 
 });
 </script>
