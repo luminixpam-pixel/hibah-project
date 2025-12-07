@@ -41,7 +41,7 @@
                     <td>
                         <div class="d-flex gap-2">
 
-                            {{-- Download file --}}
+                            {{-- Download file (kode LAMA, tidak diubah) --}}
                             @if ($proposal->file_path)
                                 <a href="{{ route('proposal.download', $proposal->id) }}"
                                    class="btn btn-sm btn-outline-primary"
@@ -52,7 +52,23 @@
                                 <span class="text-muted">No File</span>
                             @endif
 
-                            {{-- Tombol kirim ke Perlu Direview (ADMIN + REVIEWER saja) --}}
+                            {{-- ➕ TINJAU PROPOSAL (halaman detail) --}}
+                            <a href="{{ url('/proposal/'.$proposal->id.'/tinjau') }}"
+                               class="btn btn-sm btn-secondary">
+                                Tinjau
+                            </a>
+
+                            {{-- ➕ EDIT PROPOSAL
+                                 hanya boleh oleh pengusul sendiri
+                                 & selama status masih "Dikirim" --}}
+                            @if (Auth::id() === $proposal->user_id && $proposal->status === 'Dikirim')
+                                <a href="{{ url('/proposal/'.$proposal->id.'/edit') }}"
+                                   class="btn btn-sm btn-warning">
+                                    Edit
+                                </a>
+                            @endif
+
+                            {{-- Tombol kirim ke Perlu Direview (ADMIN + REVIEWER saja – kode LAMA) --}}
                             @if (in_array($role, ['admin', 'reviewer']) && $proposal->status === 'Dikirim')
                                 <form action="{{ route('proposal.moveToPerluDireview', $proposal->id) }}"
                                       method="POST"

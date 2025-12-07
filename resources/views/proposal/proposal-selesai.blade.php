@@ -29,8 +29,10 @@
 <div class="container mt-4">
 
     {{-- TITLE --}}
-    <h4 class="page-title mb-1">Proposal Selesai— Universitas YARSI</h4>
-    <p class="page-subtitle mb-4">Berikut daftar seluruh proposal yang telah selesai.</p>
+    <h4 class="page-title mb-1"> Daftar Review Selesai — Universitas YARSI</h4>
+    <p class="page-subtitle mb-4">
+        Berikut daftar seluruh review yang sudah disimpan.
+    </p>
 
     {{-- TABLE --}}
     <div class="table-responsive">
@@ -38,42 +40,39 @@
             <thead>
                 <tr>
                     <th>No</th>
-                    <th>Reviewer</th>
-                    <th>Pengusul</th>
                     <th>Judul Proposal</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
+                    <th>Pengusul</th>
+                    <th>Reviewer</th>
+                    <th>Status Proposal</th>
+                    <th>Total Skor</th>
+                    <th>Status Review</th>
+                    <th>Catatan</th>
+                    <th>Tanggal Review</th>
                 </tr>
             </thead>
 
             <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>Analisis Efektivitas Obat Herbal</td>
-                    <td>Prof. Pratiwi P. Sudarmono</td>
-                    <td>Dr. Ahmad Faisal</td>
-                    <td><span class="badge bg-success">Disetujui</span></td>
-                    <td>
-
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td>2</td>
-                    <td>Pemanfaatan AI untuk Deteksi Penyakit Kulit</td>
-                    <td>Dr. Ratna Sitompul</td>
-                    <td>Prof. Hartono</td>
-                    <td><span class="badge bg-success">Ditolak</span></td>
-                    <td>
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
-
+                @forelse($reviews as $index => $review)
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $review->judul }}</td>
+                        <td>{{ $review->nama_ketua }}</td>
+                        <td>{{ $review->reviewer_nama ?? '-' }}</td>
+                        <td>{{ $review->proposal_status ?? '-' }}</td>
+                        <td>{{ $review->total_score ?? '-' }}</td>
+                        <td>{{ $review->status ?? '-' }}</td>
+                        <td style="max-width: 250px; white-space: pre-wrap;">
+                            {{ $review->catatan ?? '-' }}
+                        </td>
+                        <td>{{ $review->created_at?->format('d-m-Y H:i') }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-3">
+                            Belum ada review yang selesai.
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>

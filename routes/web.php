@@ -53,9 +53,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/monitoring-data', fn() => view('monitoring.index'))->name('monitoring.data');
     Route::get('/monitoring/data', fn() => view('monitoring.data'))->name('monitoring.data2');
     Route::get('/admin/hasil-review', [AdminController::class, 'hasilReview'])->name('admin.hasil-review');
-
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -76,6 +74,21 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/proposal', [ProposalController::class, 'index'])->name('proposal.index');
     Route::get('/proposal/download/{id}', [ProposalController::class, 'download'])->name('proposal.download');
     Route::get('/daftar-proposal', [ProposalController::class, 'index'])->name('monitoring.proposalDikirim');
+
+    // HALAMAN TINJAU PROPOSAL
+    Route::get('/proposal/{id}/tinjau', [ProposalController::class, 'tinjau'])
+        ->whereNumber('id')
+        ->name('proposal.tinjau');
+
+    // HALAMAN EDIT PROPOSAL
+    Route::get('/proposal/{id}/edit', [ProposalController::class, 'edit'])
+        ->whereNumber('id')
+        ->name('proposal.edit');
+
+    // UPDATE PROPOSAL
+    Route::put('/proposal/{id}', [ProposalController::class, 'update'])
+        ->whereNumber('id')
+        ->name('proposal.update');
 });
 
 /*
@@ -92,8 +105,11 @@ Route::middleware(['auth', 'role:admin,reviewer'])->group(function () {
         [ProposalController::class, 'proposalPerluDireview']
     )->name('monitoring.proposalPerluDireview');
 
-    Route::get('/proposal-sedang-direview', fn() => view('proposal.proposal-sedang-direview'))
-        ->name('monitoring.proposalSedangDireview');
+    // sekarang pakai controller: ambil dari status "Sedang Direview"
+    Route::get(
+        '/proposal-sedang-direview',
+        [ProposalController::class, 'proposalSedangDireview']
+    )->name('monitoring.proposalSedangDireview');
 
     // pindahkan proposal ke "Perlu Direview"
     Route::patch(
@@ -110,6 +126,27 @@ Route::middleware(['auth', 'role:admin,reviewer'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| REVIEWER ONLY
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:reviewer'])->group(function () {
+
+    Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])
+        ->whereNumber('id')
+        ->name('reviewer.isi-review');
+
+    Route::post('/reviewer/isi-review/{id}', [ReviewerController::class, 'submitReview'])
+        ->whereNumber('id')
+        ->name('reviewer.submitReview');
+
+    // route lama /review/{id}/simpan diarahkan ke method submitReview
+    Route::post('/review/{id}/simpan', [ReviewerController::class, 'submitReview'])
+        ->whereNumber('id')
+        ->name('review.simpan');
+});
+
+/*
+|--------------------------------------------------------------------------
 | SEMUA ROLE (ADMIN • REVIEWER • PENGAJU)
 |--------------------------------------------------------------------------
 */
@@ -121,7 +158,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/proposal-ditolak', fn() => view('proposal.proposal-ditolak'))
         ->name('monitoring.proposalDitolak');
 
-    Route::get('/proposal-selesai', fn() => view('proposal.proposal-selesai'))
+    // pakai controller supaya $reviews dibawa ke view
+    Route::get('/proposal-selesai', [ProposalController::class, 'reviewSelesai'])
         ->name('monitoring.reviewSelesai');
 
     Route::get('/hasil-review', fn() => view('proposal.hasil-review'))
@@ -130,26 +168,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/proposal-direvisi', fn() => view('proposal.proposal-direvisi'))
         ->name('monitoring.proposalDirevisi');
 });
-
-/*
-|--------------------------------------------------------------------------
-| REVIEWER ONLY
-|--------------------------------------------------------------------------
-*/
-// REVIEWER ONLY
-Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])
-    ->whereNumber('id')
-    ->name('reviewer.isi-review');
-Route::middleware(['auth', 'role:reviewer'])->group(function () {
-    Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])
-        ->name('reviewer.isi-review');
-
-    Route::post('/reviewer/isi-review/{id}', [ReviewerController::class, 'submitReview'])
-        ->name('reviewer.submitReview');
-});
-Route::post('/review/{id}/simpan', [ReviewerController::class, 'simpanReview'])->name('review.simpan');
-
-
 
 /*
 |--------------------------------------------------------------------------
@@ -163,4 +181,6 @@ Route::middleware(['auth'])->group(function () {
 });
 
 //notifikasi
-Route::get('/notifications/fetch', [NotificationController::class, 'fetch'])->name('notifications.fetch')->middleware('auth');
+Route::get('/notifications/fetch', [NotificationController::class, 'fetch'])
+    ->name('notifications.fetch')
+    ->middleware('auth');

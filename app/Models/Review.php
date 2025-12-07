@@ -1,6 +1,5 @@
 <?php
 
-// app/Models/Review.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Review extends Model
 {
     use HasFactory;
+
+    protected $table = 'reviews';
 
     protected $fillable = [
         'proposal_id',
@@ -20,19 +21,13 @@ class Review extends Model
         'nilai_5',
         'nilai_6',
         'nilai_7',
-        'status', // misal: pending, disetujui, ditolak
-        'catatan',
+        'status',      // kalau kolom ini ada di tabel
+        'catatan',     // kalau kolom ini ada di tabel
+        'total_score', // ⬅️ penting
     ];
 
     public function proposal()
     {
         return $this->belongsTo(Proposal::class);
     }
-
-    public function reviewer()
-    {
-        return $this->belongsTo(User::class, 'reviewer_id');
-    }
 }
-
-

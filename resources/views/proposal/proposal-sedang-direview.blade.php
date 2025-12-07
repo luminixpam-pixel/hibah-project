@@ -30,8 +30,7 @@
 
     {{-- TITLE --}}
     <h4 class="page-title mb-1"> Daftar Proposal Sedang Direview — Universitas YARSI</h4>
-    <p class="page-subtitle mb-4">Berikut daftar seluruh proposal yang Sedang direview.</p>
-
+    <p class="page-subtitle mb-4">Berikut daftar seluruh proposal yang sedang direview.</p>
 
     {{-- TABLE --}}
     <div class="table-responsive">
@@ -42,39 +41,45 @@
                     <th>Reviewer</th>
                     <th>Pengusul</th>
                     <th>Judul Proposal</th>
-                    <th>Status </th>
+                    <th>Status</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
 
             <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>Analisis Efektivitas Obat Herbal</td>
-                    <td>Prof. Pratiwi P. Sudarmono</td>
-                    <td>Dr. Ahmad Faisal</td>
-                    <td><span class="badge bg-success">Sedang Direview</span></td>
-                    <td>
-
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td>2</td>
-                    <td>Pemanfaatan AI untuk Deteksi Penyakit Kulit</td>
-                    <td>Dr. Ratna Sitompul</td>
-                    <td>Prof. Hartono</td>
-                    <td><span class="badge bg-success">Sedang Direview</span></td>
-                    <td>
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
-
+                @forelse($proposals as $index => $proposal)
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $proposal->reviewer ?? '-' }}</td>
+                        <td>{{ $proposal->nama_ketua }}</td>
+                        <td>{{ $proposal->judul }}</td>
+                        <td>
+                            <span class="badge bg-success">Sedang Direview</span>
+                        </td>
+                        <td>
+                            @if(auth()->user()->role === 'reviewer')
+                                @if($proposal->reviewer === auth()->user()->name)
+                                    {{-- tombol khusus reviewer yang ditugaskan --}}
+                                    <a href="{{ route('reviewer.isi-review', $proposal->id) }}"
+                                       class="btn btn-success btn-sm">
+                                        Beri Review
+                                    </a>
+                                @else
+                                    <span class="text-muted">Bukan reviewer proposal ini</span>
+                                @endif
+                            @else
+                                {{-- misalnya admin, kalau mau bisa dikasih tombol Detail di sini --}}
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-3">
+                            Belum ada proposal yang sedang direview.
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>

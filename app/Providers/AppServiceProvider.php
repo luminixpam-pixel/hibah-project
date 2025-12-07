@@ -1,6 +1,5 @@
 <?php
 
-// app/Providers/AppServiceProvider.php
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
@@ -9,9 +8,20 @@ use App\Observers\ReviewObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
     public function boot(): void
     {
+        // daftarkan observer untuk model Review
         Review::observe(ReviewObserver::class);
     }
 }
-
