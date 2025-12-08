@@ -188,7 +188,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 });
 
+
 //notifikasi
 Route::get('/notifications/fetch', [NotificationController::class, 'fetch'])
     ->name('notifications.fetch')
     ->middleware('auth');
+
