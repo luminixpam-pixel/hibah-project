@@ -10,9 +10,14 @@ class Notification extends Model
 {
     use HasFactory;
 
+    // WAJIB jika tabel sudah diganti dari 'notifications' menjadi 'review_selesai'
+    protected $table = 'review_selesai';
+
     protected $fillable = ['user_id', 'title', 'type', 'is_read'];
 
-    public function user() {
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 }
+ 
