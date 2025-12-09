@@ -19,6 +19,17 @@
         </div>
     @endif
 
+    {{-- 🔍 SEARCH DI KANAN ATAS --}}
+    <div class="d-flex justify-content-end mb-3">
+        <div class="input-group" style="max-width: 320px;">
+            <span class="input-group-text">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text" id="table-search" class="form-control"
+                   placeholder="Cari Judul Proposal atau Nama Dosen">
+        </div>
+    </div>
+
     {{-- TABEL DAFTAR PROPOSAL --}}
     <div class="table-responsive mt-4">
         <table class="table table-bordered align-middle">
@@ -58,9 +69,7 @@
                                 Tinjau
                             </a>
 
-                            {{-- ➕ EDIT PROPOSAL
-                                 hanya boleh oleh pengusul sendiri
-                                 & selama status masih "Dikirim" --}}
+                            {{-- ➕ EDIT PROPOSAL --}}
                             @if (Auth::id() === $proposal->user_id && $proposal->status === 'Dikirim')
                                 <a href="{{ url('/proposal/'.$proposal->id.'/edit') }}"
                                    class="btn btn-sm btn-warning">
@@ -92,6 +101,15 @@
             </tbody>
         </table>
     </div>
+
+    {{-- 🔁 NEXT DI BAWAH TABEL (KANAN SAJA) --}}
+    <div class="d-flex justify-content-end mt-3">
+        <a href="{{ route('monitoring.proposalPerluDireview') }}"
+           class="btn btn-outline-success btn-sm">
+            Proposal Perlu Direview &raquo;
+        </a>
+    </div>
+
 </div>
 
 {{-- Script Auto-Close Alert 2,5 detik --}}
@@ -117,6 +135,26 @@ document.addEventListener("DOMContentLoaded", function () {
         let toast = new bootstrap.Toast(toastSuccess, { delay: 3000 });
         toast.show();
     }
+});
+</script>
+@endpush
+
+@push('scripts')
+{{-- 🔍 SCRIPT FILTER TABEL --}}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById('table-search');
+    if (!searchInput) return;
+
+    const rows = document.querySelectorAll('table tbody tr');
+
+    searchInput.addEventListener('keyup', function () {
+        const term = this.value.toLowerCase();
+
+        rows.forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+        });
+    });
 });
 </script>
 @endpush
