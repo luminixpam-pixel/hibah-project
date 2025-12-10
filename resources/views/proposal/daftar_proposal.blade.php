@@ -104,10 +104,19 @@
 
     {{-- 🔁 NEXT DI BAWAH TABEL (KANAN SAJA) --}}
     <div class="d-flex justify-content-end mt-3">
-        <a href="{{ route('monitoring.proposalPerluDireview') }}"
-           class="btn btn-outline-success btn-sm">
-            Proposal Perlu Direview &raquo;
-        </a>
+        @if($role === 'pengaju')
+            {{-- Pengaju: lompat langsung ke Review Selesai --}}
+            <a href="{{ route('monitoring.reviewSelesai') }}"
+               class="btn btn-outline-success btn-sm">
+                Review Selesai &raquo;
+            </a>
+        @else
+            {{-- Admin / Reviewer: tetap ke Proposal Perlu Direview --}}
+            <a href="{{ route('monitoring.proposalPerluDireview') }}"
+               class="btn btn-outline-success btn-sm">
+                Proposal Perlu Direview &raquo;
+            </a>
+        @endif
     </div>
 
 </div>

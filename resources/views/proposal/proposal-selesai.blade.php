@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@php
+    $role = Auth::user()->role ?? null;
+@endphp
+
 @section('content')
 
 <style>
@@ -88,10 +92,19 @@
 
     {{-- 🔁 PREV / NEXT --}}
     <div class="d-flex justify-content-between mt-3">
-        <a href="{{ route('monitoring.proposalSedangDireview') }}"
-           class="btn btn-outline-success btn-sm">
-            &laquo; Proposal Sedang Direview
-        </a>
+        @if($role === 'pengaju')
+            {{-- Pengaju: balik ke Daftar Proposal --}}
+            <a href="{{ route('monitoring.proposalDikirim') }}"
+               class="btn btn-outline-success btn-sm">
+                &laquo; Daftar Proposal
+            </a>
+        @else
+            {{-- Admin / Reviewer: tetap ke Proposal Sedang Direview --}}
+            <a href="{{ route('monitoring.proposalSedangDireview') }}"
+               class="btn btn-outline-success btn-sm">
+                &laquo; Proposal Sedang Direview
+            </a>
+        @endif
 
         <a href="{{ route('monitoring.proposalDisetujui') }}"
            class="btn btn-outline-success btn-sm">
