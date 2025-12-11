@@ -93,12 +93,16 @@
                 && $item['title'] !== 'Proposal Sedang Direview';
         });
     }
+
+    // route aktif sekarang (buat highlight navbar/card)
+    $currentRoute = Route::currentRouteName();
 @endphp
 
 <div class="row g-3 mb-4 {{ $role === 'pengaju' ? 'justify-content-center' : '' }}">
     @foreach ($dashboardItems as $item)
         <div class="col-6 col-md-3">
-            <a href="{{ route($item['route']) }}" class="text-decoration-none">
+            <a href="{{ route($item['route']) }}"
+               class="text-decoration-none dashboard-link {{ $currentRoute === $item['route'] ? 'dashboard-link-active' : '' }}">
                 <div class="card text-center p-3 border shadow-sm h-100">
                     <h6 class="mb-2 text-dark">{{ $item['title'] }}</h6>
                     <h4 class="text-dark">{{ $item['count'] }}</h4>
@@ -229,6 +233,24 @@
 }
 
 .close-popup:hover { color: red; }
+
+/* ====== HIGHLIGHT NAV CARD AKTIF (kayak tab kalender) ====== */
+
+.dashboard-link .card {
+    transition: box-shadow 0.2s ease, transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.dashboard-link:hover .card {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+/* card yang route-nya sedang aktif */
+.dashboard-link-active .card {
+    border: 2px solid #2563eb;               /* biru soft */
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, .18);
+    background: #eef2ff;                     /* biru muda very light */
+}
 </style>
 @endpush
 

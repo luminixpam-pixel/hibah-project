@@ -7,6 +7,7 @@ use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ReviewerController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\CalendarController; // ⬅️ TAMBAH INI
 
 /*
 |--------------------------------------------------------------------------
@@ -39,8 +40,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/update', [DashboardController::class, 'updateProfile'])->name('dashboard.updateProfile');
 
-    // Kalender — semua role boleh
-    Route::get('/monitoring-kalender', fn() => view('monitoring-data'))->name('monitoring.kalender');
+    // Kalender — semua role boleh, pakai CalendarController
+    Route::get('/monitoring-kalender', [CalendarController::class, 'index'])
+        ->name('monitoring.kalender');
 });
 
 /*
@@ -53,6 +55,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/monitoring-data', fn() => view('monitoring.index'))->name('monitoring.data');
     Route::get('/monitoring/data', fn() => view('monitoring.data'))->name('monitoring.data2');
     Route::get('/admin/hasil-review', [AdminController::class, 'hasilReview'])->name('admin.hasil-review');
+
+    // ⬇️ Hanya ADMIN boleh simpan/update periode hibah
+    Route::post(
+        '/monitoring-kalender/periode',
+        [CalendarController::class, 'updatePeriod']
+    )->name('monitoring.kalender.periode'); // ⬅️ diganti dari updatePeriod ke periode
 });
 
 /*

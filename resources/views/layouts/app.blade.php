@@ -29,6 +29,28 @@ body {
 #mainNavbar .nav-link { font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
 #mainNavbar .nav-link i { font-size: 1.3rem; }
 
+/* ====== NAVBAR ACTIVE STATE (indikator halaman aktif) ====== */
+#mainNavbar .nav-link.main-nav-link {
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-weight: 500;
+    transition: background .15s ease, box-shadow .15s ease, transform .12s ease;
+}
+
+#mainNavbar .nav-link.main-nav-link:hover {
+    background: rgba(255,255,255,0.18);
+    transform: translateY(-1px);
+}
+
+#mainNavbar .nav-link.main-nav-link-active {
+    background: rgba(15,23,42,0.25);
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.45);
+}
+
+#mainNavbar .nav-link.main-nav-link-active:hover {
+    background: rgba(15,23,42,0.32);
+}
+
 /* Content */
 #mainContent {
     padding: 20px;
@@ -96,6 +118,23 @@ body {
 @stack('styles')
 </head>
 <body>
+    {{-- helper route untuk tandai menu aktif --}}
+    @php
+        $routeName = \Illuminate\Support\Facades\Route::currentRouteName();
+
+        // Monitoring & Data dianggap aktif hanya untuk route monitoring.* selain kalender
+        $isMonitoringMenuActive = in_array($routeName, [
+            'monitoring.proposalDikirim',
+            'monitoring.proposalPerluDireview',
+            'monitoring.proposalSedangDireview',
+            'monitoring.reviewSelesai',
+            'monitoring.proposalDisetujui',
+            'monitoring.proposalDitolak',
+            'monitoring.proposalDirevisi',
+            'monitoring.hasilRevisi',
+        ]);
+    @endphp
+
     <!-- Alert placeholder -->
     <div id="alertPlaceholder" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
 
@@ -108,9 +147,19 @@ body {
             </button>
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav navbar-left">
-                    <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link main-nav-link {{ $routeName === 'dashboard' ? 'main-nav-link-active' : '' }}"
+                           href="{{ route('dashboard') }}">
+                            <i class="bi bi-house-door"></i> Dashboard
+                        </a>
+                    </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="monitoringDropdown" data-bs-toggle="dropdown"><i class="bi bi-bar-chart"></i> Monitoring & Data</a>
+                        <a class="nav-link dropdown-toggle main-nav-link {{ $isMonitoringMenuActive ? 'main-nav-link-active' : '' }}"
+                           href="#"
+                           id="monitoringDropdown"
+                           data-bs-toggle="dropdown">
+                            <i class="bi bi-bar-chart"></i> Monitoring & Data
+                        </a>
                         <ul class="dropdown-menu" aria-labelledby="monitoringDropdown">
                             <li><a class="dropdown-item" href="{{ route('monitoring.proposalDikirim') }}">Daftar Proposal</a></li>
                             @if(Auth::user()->role !== 'pengaju')
@@ -124,12 +173,23 @@ body {
                             <li><a class="dropdown-item" href="{{ route('monitoring.hasilRevisi') }}">Hasil Revisi</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('monitoring.kalender') }}"><i class="bi bi-calendar3"></i> Kalender</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link main-nav-link {{ $routeName === 'monitoring.kalender' ? 'main-nav-link-active' : '' }}"
+                           href="{{ route('monitoring.kalender') }}">
+                            <i class="bi bi-calendar3"></i> Kalender
+                        </a>
+                    </li>
                 </ul>
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a id="notifBell" class="nav-link" style="cursor:pointer;"><i class="bi bi-bell"></i></a></li>
+                    <li class="nav-item">
+                        <a id="notifBell" class="nav-link" style="cursor:pointer;">
+                            <i class="bi bi-bell"></i>
+                        </a>
+                    </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i> {{ Auth::user()->name ?? 'Pengguna' }}</a>
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ Auth::user()->name ?? 'Pengguna' }}
+                        </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ route('profile.show') }}">Profil</a></li>
                             <li>
