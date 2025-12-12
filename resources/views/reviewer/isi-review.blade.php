@@ -31,39 +31,45 @@
                         <th>BOBOT</th>
                         <th>NILAI</th>
                         <th>SCORE</th>
-                        <th>KOMENTAR</th>
                     </tr>
                 </thead>
 
                 <tbody>
                     @php
                         $components = [
-                            'Pengaruh Faktor Demografi, Locus Of Control, Need For Achievement, Literasi Keuangan, Dan Inklusi Keuangan Terhadap Kinerja Keuangan UMkm Di Kota Malang',
-                            'Belum ada penjelasan tentang Kenapa memilih rumusan masalah tersebut? karena rumusan masalah tidak fokus maka dalam pendahuluan tampak tidak fokus.',
-                            'Belum ada penjelasan tentang Kenapa memilih rumusan masalah tersebut? karena rumusan masalah tidak fokus maka dalam pendahuluan tampak tidak fokus.',
-                            'Rumusan masalah tidak fokus, hemat saya cukup nomor satu saja. Dan variabelnya juga independennya (demografi) juga belum jelas, di antara sekian variabel yang disebutkan.',
-                            'Sesuaikan dengan rumusan masalah.',
-                            'Kebaruan itu terlihat ditelaah pustaka. Dan belum ditemukan di sini. Kerangka teori masih berupa penjelasan konsep. Belum jelas apakah riset ini mau meneguhkan...',
-                            '1. Teknis sampling-nya belum ada.<br>2. Peta konsep riset juga belum tampak.'
+                            'Judul',
+                            'Plagiasi',
+                            'Pendahuluan',
+                            'Rumusan Masalah',
+                            'Outcome',
+                            'Kebaruan Ide',
+                            'Metode'
                         ];
-                        $bobot = [5,5,5,3,5,5,10];
+                        $bobot = [5, 5, 5, 3, 5, 5, 10];
                     @endphp
 
                     @foreach($components as $index => $comp)
                     <tr>
-                        <td class="text-start">{!! $comp !!}</td>
+                        <td class="text-start">{{ $comp }}</td>
                         <td>{{ $bobot[$index] }}</td>
                         <td>
-                            <input type="number" name="nilai_{{ $index + 1 }}" class="form-control form-control-sm">
-                        </td>
+    <input type="number" name="nilai_{{ $index + 1 }}"
+           class="form-control form-control-sm"
+           min="0" max="5" step="1"
+           oninput="if(this.value > 5) this.value=5; if(this.value < 0) this.value=0;">
+</td>
+
                         <td id="score_{{ $index + 1 }}">-</td>
-                        <td>
-                            <input type="text" name="komentar_{{ $index + 1 }}" class="form-control form-control-sm" placeholder="Tulis komentar...">
-                        </td>
                     </tr>
                     @endforeach
                 </tbody>
             </table>
+        </div>
+
+        {{-- KOMENTAR --}}
+        <div class="mt-3">
+            <label for="komentar" class="form-label"><strong>Komentar Reviewer:</strong></label>
+            <textarea name="komentar" id="komentar" rows="4" class="form-control" placeholder="Tulis komentar..."></textarea>
         </div>
 
         {{-- TOTAL NILAI --}}

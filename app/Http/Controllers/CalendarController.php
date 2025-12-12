@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\HibahPeriod;
+use App\Helpers\NotificationHelper;
+use App\Http\Controllers\NotificationController; // import class NotificationController
 
 class CalendarController extends Controller
 {
@@ -12,14 +14,13 @@ class CalendarController extends Controller
      */
     public function index()
     {
-        // ambil 1 periode aktif (kita pakai row pertama saja)
         $hibahPeriod = HibahPeriod::first();
-
         return view('monitoring-data', compact('hibahPeriod'));
     }
 
     /**
      * Hanya ADMIN yang boleh menyimpan / update periode hibah.
+     * Juga kirim notifikasi ke semua pengaju.
      */
     public function updatePeriod(Request $request)
     {
@@ -28,7 +29,6 @@ class CalendarController extends Controller
             'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
         ]);
 
-        // kalau sudah ada row, update; kalau belum, create
         $existing = HibahPeriod::first();
 
         if ($existing) {
@@ -37,8 +37,11 @@ class CalendarController extends Controller
             HibahPeriod::create($validated);
         }
 
+        // 🔔 Kirim notifikasi ke semua pengaju
+        NotificationController::notifyPeriodUpdated();
+
         return redirect()
             ->route('monitoring.kalender')
-            ->with('success', 'Periode pengajuan hibah berhasil disimpan.');
+            ->with('success', 'Periode pengajuan hibah berhasil disimpan dan notifikasi telah dikirim.');
     }
 }

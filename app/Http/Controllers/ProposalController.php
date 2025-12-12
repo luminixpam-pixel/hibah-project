@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Proposal;
-use App\Models\User;   // untuk ambil data reviewer
-use App\Models\Review; // untuk halaman review selesai
+use App\Models\User;
+use App\Models\Review;
 use Illuminate\Support\Facades\Storage;
+use App\Helpers\NotificationHelper;
 
 class ProposalController extends Controller
 {
@@ -15,9 +16,7 @@ class ProposalController extends Controller
      */
     public function index()
     {
-        // ambil hanya proposal dengan status "Dikirim"
         $proposals = Proposal::where('status', 'Dikirim')->latest()->get();
-
         return view('proposal.daftar_proposal', compact('proposals'));
     }
 
@@ -43,15 +42,12 @@ class ProposalController extends Controller
         ]);
 
         try {
-            // Ambil ekstensi asli file
             $extension = $request->file('file')->getClientOriginalExtension();
             $cleanName = preg_replace('/[^A-Za-z0-9\-]/', '', $request->judul);
             $finalName = $cleanName . '.' . $extension;
 
-            // Simpan file
             $filePath = $request->file('file')->storeAs('proposal_files', $finalName, 'public');
 
-            // Simpan data proposal
             $proposal = Proposal::create([
                 'judul'          => $request->judul,
                 'nama_ketua'     => $request->nama_ketua,
@@ -59,19 +55,11 @@ class ProposalController extends Controller
                 'anggota'        => $request->anggota ? json_encode($request->anggota) : null,
                 'biaya'          => $request->biaya,
                 'status'         => 'Dikirim',
-                'periode'        => null,
-                'fakultas_prodi' => null,
                 'user_id'        => auth()->id(),
-                'pengusul'       => null,
-                'reviewer'       => null,
             ]);
 
-            // Notifikasi otomatis ke user login
-            auth()->user()->notifications()->create([
-                'title'   => 'Proposal Anda berhasil dikirim',
-                'type'    => 'success',
-                'is_read' => false,
-            ]);
+            // 🔔 Notifikasi otomatis ke user sendiri
+            NotificationHelper::send(auth()->id(), 'Proposal Anda berhasil dikirim', 'Proposal Anda telah dikirim dan menunggu proses review', 'success');
 
             return redirect()->route('proposal.index')->with('success', 'Proposal berhasil diajukan!');
 
@@ -101,23 +89,21 @@ class ProposalController extends Controller
     }
 
     /**
-     * HALAMAN TINJAU PROPOSAL (DETAIL SEDERHANA)
+     * HALAMAN TINJAU PROPOSAL
      */
     public function tinjau($id)
     {
         $proposal = Proposal::findOrFail($id);
-
         return view('proposal.tinjau-proposal', compact('proposal'));
     }
 
     /**
-     * HALAMAN EDIT PROPOSAL (untuk pemilik proposal / pengaju)
+     * HALAMAN EDIT PROPOSAL
      */
     public function edit($id)
     {
         $proposal = Proposal::findOrFail($id);
 
-        // hanya pemilik + role pengaju yang boleh edit
         if (auth()->id() !== $proposal->user_id || auth()->user()->role !== 'pengaju') {
             abort(403, 'Anda tidak berhak mengedit proposal ini.');
         }
@@ -144,13 +130,11 @@ class ProposalController extends Controller
             'file'       => 'nullable|file|mimes:pdf,doc,docx|max:102400',
         ]);
 
-        // update field dasar
         $proposal->judul      = $request->judul;
         $proposal->nama_ketua = $request->nama_ketua;
         $proposal->biaya      = $request->biaya;
         $proposal->anggota    = $request->anggota ? json_encode($request->anggota) : null;
 
-        // jika upload file baru, ganti file lama
         if ($request->hasFile('file')) {
             if ($proposal->file_path && Storage::disk('public')->exists($proposal->file_path)) {
                 Storage::disk('public')->delete($proposal->file_path);
@@ -174,7 +158,6 @@ class ProposalController extends Controller
      */
     public function moveToPerluDireview(Proposal $proposal)
     {
-        // hanya proposal dengan status Dikirim yang boleh dipindah (opsional)
         if ($proposal->status !== 'Dikirim') {
             return back()->with('error', 'Proposal ini tidak dalam status Dikirim.');
         }
@@ -182,38 +165,33 @@ class ProposalController extends Controller
         $proposal->status = 'Perlu Direview';
         $proposal->save();
 
+        // 🔔 Notifikasi ke pengaju
+        NotificationHelper::send($proposal->user_id, 'Proposal Anda sedang direview', 'Proposal Anda kini masuk antrian review', 'info');
+
         return back()->with('success', 'Proposal berhasil dipindahkan ke "Perlu Direview".');
     }
 
     /**
-     * Halaman daftar proposal yang Perlu Direview
-     * (khusus admin mengatur reviewer)
+     * Halaman daftar proposal Perlu Direview (admin)
      */
     public function proposalPerluDireview()
     {
-        // semua proposal dengan status "Perlu Direview"
         $proposals = Proposal::where('status', 'Perlu Direview')->latest()->get();
-
-        // semua user yang berperan sebagai reviewer
         $reviewers = User::where('role', 'reviewer')->orderBy('name')->get();
-
         return view('proposal.proposal-perlu-direview', compact('proposals', 'reviewers'));
     }
 
     /**
-     * Halaman daftar proposal yang Sedang Direview
-     * (admin dan reviewer bisa lihat)
+     * Halaman daftar proposal Sedang Direview
      */
     public function proposalSedangDireview()
     {
         $proposals = Proposal::where('status', 'Sedang Direview')->latest()->get();
-
         return view('proposal.proposal-sedang-direview', compact('proposals'));
     }
 
     /**
      * Halaman Review Selesai
-     * Diambil dari tabel reviews JOIN proposals
      */
     public function reviewSelesai()
     {
@@ -232,7 +210,7 @@ class ProposalController extends Controller
     }
 
     /**
-     * Set / ganti reviewer untuk 1 proposal
+     * Set / ganti reviewer
      */
     public function assignReviewer(Request $request, Proposal $proposal)
     {
@@ -240,10 +218,37 @@ class ProposalController extends Controller
             'reviewer' => 'nullable|string|max:255',
         ]);
 
-        // kalau dropdown dikosongkan, reviewer = null
         $proposal->reviewer = $request->reviewer ?: null;
         $proposal->save();
 
         return back()->with('success', 'Reviewer berhasil diperbarui!');
+    }
+
+    /**
+     * Approve Proposal → disetujui
+     */
+    public function approveProposal(Proposal $proposal)
+    {
+        $proposal->status = 'Disetujui';
+        $proposal->save();
+
+        // 🔔 Notifikasi ke pengaju
+        NotificationHelper::send($proposal->user_id, 'Proposal Anda disetujui', 'Proposal Anda telah disetujui oleh reviewer/admin', 'success');
+
+        return back()->with('success', 'Proposal disetujui dan notifikasi telah dikirim.');
+    }
+
+    /**
+     * Tandai Proposal perlu revisi
+     */
+    public function reviseProposal(Proposal $proposal)
+    {
+        $proposal->status = 'Direvisi';
+        $proposal->save();
+
+        // 🔔 Notifikasi ke pengaju
+        NotificationHelper::send($proposal->user_id, 'Proposal Anda perlu direvisi', 'Silakan periksa catatan review dan revisi proposal Anda', 'warning');
+
+        return back()->with('success', 'Proposal ditandai perlu revisi dan notifikasi dikirim.');
     }
 }

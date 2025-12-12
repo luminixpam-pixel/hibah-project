@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\Proposal;
+use App\Models\Notification;
 
 class DashboardController extends Controller
 {
@@ -13,6 +14,7 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user(); // ambil data user yang sedang login
+
         $role = $user->role ?? null;
 
         // Query dasar, berbeda untuk pengaju vs admin/reviewer
@@ -72,4 +74,13 @@ class DashboardController extends Controller
 
         return redirect()->back()->with('success', 'Profil berhasil diperbarui!');
     }
+    public function dashboard()
+{
+    $notifications = Notification::where('user_id', auth()->id())
+                        ->orderBy('created_at', 'desc')
+                        ->take(5)
+                        ->get();
+
+    return view('dashboard', compact('notifications'));
+}
 }

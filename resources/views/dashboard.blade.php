@@ -4,18 +4,6 @@
 
 <div class="container mt-4">
 
-{{-- =======================
-    TOMBOL AJUKAN PROPOSAL
-======================== --}}
-<div class="d-flex justify-content-between mb-3">
-
-    @if(Auth::user()->role === 'pengaju')
-    <button id="openPopupBtn" class="btn btn-success">
-        Unggah Proposal
-    </button>
-    @endif
-
-</div>
 
 {{-- 🔴 TOAST ERROR FORMAT FILE (untuk popup upload di dashboard) --}}
 <div id="toastFileError"
@@ -308,6 +296,34 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 });
+async function fetchNotifications() {
+    try {
+        const res = await fetch('{{ route("notifications.fetch") }}');
+        const notifications = await res.json();
+
+        const list = document.getElementById('notification-list');
+        const badge = document.getElementById('notification-badge');
+
+        list.innerHTML = '';
+        let unreadCount = 0;
+
+        notifications.forEach(n => {
+            const li = document.createElement('li');
+            li.classList.add('dropdown-item');
+            li.innerHTML = `${n.title} <small class="text-muted">${new Date(n.created_at).toLocaleString()}</small>`;
+            list.appendChild(li);
+            if (!n.is_read) unreadCount++;
+        });
+
+        badge.textContent = unreadCount > 0 ? unreadCount : '';
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+// refresh tiap 10 detik
+setInterval(fetchNotifications, 10000);
+fetchNotifications();
 </script>
 @endpush
 

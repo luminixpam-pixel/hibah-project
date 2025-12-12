@@ -7,7 +7,7 @@ use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ReviewerController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\CalendarController; // ⬅️ TAMBAH INI
+use App\Http\Controllers\CalendarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,14 +33,14 @@ Route::get('/password/reset', function () {
 
 /*
 |--------------------------------------------------------------------------
-| DASHBOARD (SEMUA ROLE)
+| DASHBOARD & KALENDER (SEMUA ROLE)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/update', [DashboardController::class, 'updateProfile'])->name('dashboard.updateProfile');
 
-    // Kalender — semua role boleh, pakai CalendarController
+    // Kalender
     Route::get('/monitoring-kalender', [CalendarController::class, 'index'])
         ->name('monitoring.kalender');
 });
@@ -56,11 +56,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/monitoring/data', fn() => view('monitoring.data'))->name('monitoring.data2');
     Route::get('/admin/hasil-review', [AdminController::class, 'hasilReview'])->name('admin.hasil-review');
 
-    // ⬇️ Hanya ADMIN boleh simpan/update periode hibah
-    Route::post(
-        '/monitoring-kalender/periode',
-        [CalendarController::class, 'updatePeriod']
-    )->name('monitoring.kalender.periode'); // ⬅️ diganti dari updatePeriod ke periode
+    // Simpan/update periode hibah
+    Route::post('/monitoring-kalender/periode', [CalendarController::class, 'updatePeriod'])
+        ->name('monitoring.kalender.periode');
 });
 
 /*
@@ -83,17 +81,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/proposal/download/{id}', [ProposalController::class, 'download'])->name('proposal.download');
     Route::get('/daftar-proposal', [ProposalController::class, 'index'])->name('monitoring.proposalDikirim');
 
-    // HALAMAN TINJAU PROPOSAL
     Route::get('/proposal/{id}/tinjau', [ProposalController::class, 'tinjau'])
         ->whereNumber('id')
         ->name('proposal.tinjau');
 
-    // HALAMAN EDIT PROPOSAL
     Route::get('/proposal/{id}/edit', [ProposalController::class, 'edit'])
         ->whereNumber('id')
         ->name('proposal.edit');
 
-    // UPDATE PROPOSAL
     Route::put('/proposal/{id}', [ProposalController::class, 'update'])
         ->whereNumber('id')
         ->name('proposal.update');
@@ -103,33 +98,19 @@ Route::middleware(['auth'])->group(function () {
 |--------------------------------------------------------------------------
 | ADMIN + REVIEWER ONLY
 |--------------------------------------------------------------------------
-| Ini yang diblok untuk PENGAJU
 */
 Route::middleware(['auth', 'role:admin,reviewer'])->group(function () {
+    Route::get('/proposal-perlu-direview', [ProposalController::class, 'proposalPerluDireview'])
+        ->name('monitoring.proposalPerluDireview');
 
-    // pakai controller, bukan closure
-    Route::get(
-        '/proposal-perlu-direview',
-        [ProposalController::class, 'proposalPerluDireview']
-    )->name('monitoring.proposalPerluDireview');
+    Route::get('/proposal-sedang-direview', [ProposalController::class, 'proposalSedangDireview'])
+        ->name('monitoring.proposalSedangDireview');
 
-    // sekarang pakai controller: ambil dari status "Sedang Direview"
-    Route::get(
-        '/proposal-sedang-direview',
-        [ProposalController::class, 'proposalSedangDireview']
-    )->name('monitoring.proposalSedangDireview');
+    Route::patch('/proposal/{proposal}/perlu-direview', [ProposalController::class, 'moveToPerluDireview'])
+        ->name('proposal.moveToPerluDireview');
 
-    // pindahkan proposal ke "Perlu Direview"
-    Route::patch(
-        '/proposal/{proposal}/perlu-direview',
-        [ProposalController::class, 'moveToPerluDireview']
-    )->name('proposal.moveToPerluDireview');
-
-    // set / ganti reviewer untuk proposal
-    Route::patch(
-        '/proposal-perlu-direview/{proposal}/assign-reviewer',
-        [ProposalController::class, 'assignReviewer']
-    )->name('proposal.assignReviewer');
+    Route::patch('/proposal-perlu-direview/{proposal}/assign-reviewer', [ProposalController::class, 'assignReviewer'])
+        ->name('proposal.assignReviewer');
 });
 
 /*
@@ -138,7 +119,6 @@ Route::middleware(['auth', 'role:admin,reviewer'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:reviewer'])->group(function () {
-
     Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])
         ->whereNumber('id')
         ->name('reviewer.isi-review');
@@ -147,7 +127,6 @@ Route::middleware(['auth', 'role:reviewer'])->group(function () {
         ->whereNumber('id')
         ->name('reviewer.submitReview');
 
-    // route lama /review/{id}/simpan diarahkan ke method submitReview
     Route::post('/review/{id}/simpan', [ReviewerController::class, 'submitReview'])
         ->whereNumber('id')
         ->name('review.simpan');
@@ -159,14 +138,12 @@ Route::middleware(['auth', 'role:reviewer'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
-
     Route::get('/proposal-disetujui', fn() => view('proposal.proposal-disetujui'))
         ->name('monitoring.proposalDisetujui');
 
     Route::get('/proposal-ditolak', fn() => view('proposal.proposal-ditolak'))
         ->name('monitoring.proposalDitolak');
 
-    // pakai controller supaya $reviews dibawa ke view
     Route::get('/proposal-selesai', [ProposalController::class, 'reviewSelesai'])
         ->name('monitoring.reviewSelesai');
 
@@ -188,9 +165,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 });
 
-
-//notifikasi
-Route::get('/notifications/fetch', [NotificationController::class, 'fetch'])
-    ->name('notifications.fetch')
-    ->middleware('auth');
-
+/*
+|--------------------------------------------------------------------------
+| NOTIFIKASI (SEMUA ROLE)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+    Route::get('/notifications/fetch', [NotificationController::class, 'fetch'])->name('notifications.fetch');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])
+        ->name('notifications.markAllAsRead');
+    Route::post('/notifications/send-all', [NotificationController::class, 'sendToAll'])
+        ->name('notifications.sendAll');
+    Route::post('/notifications/send-user', [NotificationController::class, 'sendToUser'])
+        ->name('notifications.sendUser');
+});
