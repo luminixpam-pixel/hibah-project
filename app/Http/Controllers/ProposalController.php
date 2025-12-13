@@ -209,20 +209,39 @@ class ProposalController extends Controller
         return view('proposal.proposal-selesai', compact('reviews'));
     }
 
-    /**
-     * Set / ganti reviewer
-     */
-    public function assignReviewer(Request $request, Proposal $proposal)
-    {
-        $request->validate([
-            'reviewer' => 'nullable|string|max:255',
-        ]);
+public function assignReviewer(Request $request, Proposal $proposal)
+{
+    $request->validate([
+        'reviewer_1' => 'nullable|exists:users,id',
+        'reviewer_2' => 'nullable|exists:users,id',
+    ]);
 
-        $proposal->reviewer = $request->reviewer ?: null;
-        $proposal->save();
+    $reviewers = collect([
+        $request->reviewer_1,
+        $request->reviewer_2,
+    ])->filter()->unique()->values();
 
-        return back()->with('success', 'Reviewer berhasil diperbarui!');
+    // sync ke pivot (proposal_reviewers)
+    $proposal->reviewers()->sync($reviewers);
+
+    // update status proposal
+    $proposal->status = 'Perlu Direview';
+    $proposal->save();
+
+    // 🔔 Kirim notifikasi ke reviewer yang ditugaskan
+    foreach ($reviewers as $reviewerId) {
+        NotificationHelper::send(
+            $reviewerId,
+            'Proposal Baru Ditugaskan',
+            'Anda telah ditugaskan untuk meninjau proposal: "' . $proposal->judul . '"',
+            'info'
+        );
     }
+
+    return back()->with('success', 'Reviewer berhasil ditetapkan dan notifikasi dikirim.');
+}
+
+
 
     /**
      * Approve Proposal → disetujui

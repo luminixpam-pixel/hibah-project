@@ -11,6 +11,13 @@
         Judul Proposal: <strong>{{ $proposal->judul }}</strong>
     </p>
 
+    {{-- TENGGAT WAKTU REVIEW --}}
+    @if($proposal->review_deadline)
+        <p class="text-danger fw-bold">
+            🕒 Tenggat Waktu Review: {{ \Carbon\Carbon::parse($proposal->review_deadline)->format('d M Y H:i') }}
+        </p>
+    @endif
+
     {{-- Tombol Download --}}
     <div class="text-end mb-3">
         <a href="{{ route('proposal.download', $proposal->id) }}" class="btn btn-success btn-sm">
@@ -53,12 +60,11 @@
                         <td class="text-start">{{ $comp }}</td>
                         <td>{{ $bobot[$index] }}</td>
                         <td>
-    <input type="number" name="nilai_{{ $index + 1 }}"
-           class="form-control form-control-sm"
-           min="0" max="5" step="1"
-           oninput="if(this.value > 5) this.value=5; if(this.value < 0) this.value=0;">
-</td>
-
+                            <input type="number" name="nilai_{{ $index + 1 }}"
+                                class="form-control form-control-sm"
+                                min="0" max="5" step="1"
+                                oninput="if(this.value > 5) this.value=5; if(this.value < 0) this.value=0;">
+                        </td>
                         <td id="score_{{ $index + 1 }}">-</td>
                     </tr>
                     @endforeach

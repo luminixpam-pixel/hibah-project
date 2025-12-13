@@ -4,23 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Proposal extends Model
+class ProposalReviewer extends Model
 {
     protected $fillable = [
-        'nama_ketua',
-        'anggota',
-        'biaya',
-        'judul',
-        'file_path',
-        'status',
-        'periode',
-        'fakultas_prodi',
-        'user_id',
-        'pengusul',
+        'proposal_id',
+        'reviewer_id',
     ];
 
     public function reviewers()
 {
     return $this->belongsToMany(User::class, 'proposal_reviewers', 'proposal_id', 'reviewer_id');
 }
+
+
+    public function proposal()
+    {
+        return $this->belongsTo(Proposal::class);
+    }
 }
+
+
+

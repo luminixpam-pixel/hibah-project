@@ -52,4 +52,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(\App\Models\Notification::class, 'user_id');
     }
+
+    public function reviewProposals()
+{
+    return $this->belongsToMany(Proposal::class, 'proposal_reviewers', 'reviewer_id', 'proposal_id');
+}
+
 }
