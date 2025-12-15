@@ -16,7 +16,10 @@ class ProposalController extends Controller
      */
     public function index()
     {
-        $proposals = Proposal::where('status', 'Dikirim')->latest()->get();
+        $proposals = Proposal::where('status', 'Dikirim')
+            ->latest()
+            ->get();
+
         return view('proposal.daftar_proposal', compact('proposals'));
     }
 
@@ -59,10 +62,14 @@ class ProposalController extends Controller
             ]);
 
             // 🔔 Notifikasi otomatis ke user sendiri
-            NotificationHelper::send(auth()->id(), 'Proposal Anda berhasil dikirim', 'Proposal Anda telah dikirim dan menunggu proses review', 'success');
+            NotificationHelper::send(
+                auth()->id(),
+                'Proposal Anda berhasil dikirim',
+                'Proposal Anda telah dikirim dan menunggu proses review',
+                'success'
+            );
 
             return redirect()->route('proposal.index')->with('success', 'Proposal berhasil diajukan!');
-
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal upload proposal: ' . $e->getMessage());
         }
@@ -166,7 +173,12 @@ class ProposalController extends Controller
         $proposal->save();
 
         // 🔔 Notifikasi ke pengaju
-        NotificationHelper::send($proposal->user_id, 'Proposal Anda sedang direview', 'Proposal Anda kini masuk antrian review', 'info');
+        NotificationHelper::send(
+            $proposal->user_id,
+            'Proposal Anda sedang direview',
+            'Proposal Anda kini masuk antrian review',
+            'info'
+        );
 
         return back()->with('success', 'Proposal berhasil dipindahkan ke "Perlu Direview".');
     }
@@ -176,72 +188,79 @@ class ProposalController extends Controller
      */
     public function proposalPerluDireview()
     {
-        $proposals = Proposal::where('status', 'Perlu Direview')->latest()->get();
-        $reviewers = User::where('role', 'reviewer')->orderBy('name')->get();
+        $proposals = Proposal::where('status', 'Perlu Direview')
+            ->with('reviewers')
+            ->latest()
+            ->get();
+
+        $reviewers = User::where('role', 'reviewer')
+            ->orderBy('name')
+            ->get();
+
         return view('proposal.proposal-perlu-direview', compact('proposals', 'reviewers'));
     }
 
     /**
      * Halaman daftar proposal Sedang Direview
+     * ✅ load reviewers + reviews untuk progress 0/2, 1/2, 2/2
      */
     public function proposalSedangDireview()
     {
-        $proposals = Proposal::where('status', 'Sedang Direview')->latest()->get();
+        $proposals = Proposal::where('status', 'Sedang Direview')
+            ->with(['reviewers', 'reviews'])
+            ->latest()
+            ->get();
+
         return view('proposal.proposal-sedang-direview', compact('proposals'));
     }
 
     /**
      * Halaman Review Selesai
+     * ✅ versi aman untuk 2 reviewer: ambil data reviewer via relasi reviewer()
      */
     public function reviewSelesai()
     {
-        $reviews = Review::select(
-                'reviews.*',
-                'proposals.judul',
-                'proposals.nama_ketua',
-                'proposals.reviewer as reviewer_nama',
-                'proposals.status as proposal_status'
-            )
-            ->join('proposals', 'reviews.proposal_id', '=', 'proposals.id')
-            ->orderByDesc('reviews.created_at')
+        $reviews = Review::with(['proposal.reviewers', 'reviewer'])
+            ->orderByDesc('created_at')
             ->get();
 
         return view('proposal.proposal-selesai', compact('reviews'));
     }
 
-public function assignReviewer(Request $request, Proposal $proposal)
-{
-    $request->validate([
-        'reviewer_1' => 'nullable|exists:users,id',
-        'reviewer_2' => 'nullable|exists:users,id',
-    ]);
+    /**
+     * Assign 2 reviewer (pivot proposal_reviewers)
+     */
+    public function assignReviewer(Request $request, Proposal $proposal)
+    {
+        $request->validate([
+            'reviewer_1' => 'nullable|exists:users,id',
+            'reviewer_2' => 'nullable|exists:users,id',
+        ]);
 
-    $reviewers = collect([
-        $request->reviewer_1,
-        $request->reviewer_2,
-    ])->filter()->unique()->values();
+        $reviewers = collect([
+            $request->reviewer_1,
+            $request->reviewer_2,
+        ])->filter()->unique()->values();
 
-    // sync ke pivot (proposal_reviewers)
-    $proposal->reviewers()->sync($reviewers);
+        // sync ke pivot (proposal_reviewers)
+        $proposal->reviewers()->sync($reviewers);
 
-    // update status proposal
-    $proposal->status = 'Perlu Direview';
-    $proposal->save();
+        // update status proposal
+        $proposal->status = 'Perlu Direview';
+        $proposal->save();
 
-    // 🔔 Kirim notifikasi ke reviewer yang ditugaskan
-    foreach ($reviewers as $reviewerId) {
-        NotificationHelper::send(
-            $reviewerId,
-            'Proposal Baru Ditugaskan',
-            'Anda telah ditugaskan untuk meninjau proposal: "' . $proposal->judul . '"',
-            'info'
-        );
+        // 🔔 Kirim notifikasi ke reviewer yang ditugaskan
+        foreach ($reviewers as $reviewerId) {
+            NotificationHelper::send(
+                $reviewerId,
+                'Proposal Baru Ditugaskan',
+                'Anda telah ditugaskan untuk meninjau proposal: "' . $proposal->judul . '"',
+                'info'
+            );
+        }
+
+        return back()->with('success', 'Reviewer berhasil ditetapkan dan notifikasi dikirim.');
     }
-
-    return back()->with('success', 'Reviewer berhasil ditetapkan dan notifikasi dikirim.');
-}
-
-
 
     /**
      * Approve Proposal → disetujui
@@ -252,7 +271,12 @@ public function assignReviewer(Request $request, Proposal $proposal)
         $proposal->save();
 
         // 🔔 Notifikasi ke pengaju
-        NotificationHelper::send($proposal->user_id, 'Proposal Anda disetujui', 'Proposal Anda telah disetujui oleh reviewer/admin', 'success');
+        NotificationHelper::send(
+            $proposal->user_id,
+            'Proposal Anda disetujui',
+            'Proposal Anda telah disetujui oleh reviewer/admin',
+            'success'
+        );
 
         return back()->with('success', 'Proposal disetujui dan notifikasi telah dikirim.');
     }
@@ -266,7 +290,12 @@ public function assignReviewer(Request $request, Proposal $proposal)
         $proposal->save();
 
         // 🔔 Notifikasi ke pengaju
-        NotificationHelper::send($proposal->user_id, 'Proposal Anda perlu direvisi', 'Silakan periksa catatan review dan revisi proposal Anda', 'warning');
+        NotificationHelper::send(
+            $proposal->user_id,
+            'Proposal Anda perlu direvisi',
+            'Silakan periksa catatan review dan revisi proposal Anda',
+            'warning'
+        );
 
         return back()->with('success', 'Proposal ditandai perlu revisi dan notifikasi dikirim.');
     }

@@ -48,6 +48,10 @@
                 <tr>
                     <th>No</th>
                     <th>Reviewer</th>
+
+                    {{-- ✅ OPSIONAL: Progress --}}
+                    <th>Progress</th>
+
                     <th>Pengusul</th>
                     <th>Judul Proposal</th>
                     <th>Status</th>
@@ -61,6 +65,10 @@
                         // ✅ ambil reviewer dari relasi pivot reviewers()
                         $reviewerNames = ($proposal->reviewers ?? collect())->pluck('name')->implode(', ');
                         $isAssignedReviewer = ($proposal->reviewers ?? collect())->pluck('id')->contains(auth()->id());
+
+                        // ✅ OPSIONAL: hitung progress review masuk
+                        $totalReviewer = ($proposal->reviewers ?? collect())->count();
+                        $doneReviewer = ($proposal->reviews ?? collect())->pluck('reviewer_id')->unique()->count();
                     @endphp
 
                     <tr>
@@ -68,6 +76,13 @@
 
                         {{-- ✅ tampilkan reviewer dari pivot --}}
                         <td>{{ $reviewerNames ?: '-' }}</td>
+
+                        {{-- ✅ OPSIONAL: Progress --}}
+                        <td>
+                            <span class="badge bg-info">
+                                {{ $doneReviewer }}/{{ $totalReviewer }}
+                            </span>
+                        </td>
 
                         <td>{{ $proposal->nama_ketua }}</td>
                         <td>{{ $proposal->judul }}</td>
@@ -94,7 +109,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-3">
+                        <td colspan="7" class="text-center text-muted py-3">
                             Belum ada proposal yang sedang direview.
                         </td>
                     </tr>

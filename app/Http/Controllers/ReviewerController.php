@@ -31,13 +31,13 @@ class ReviewerController extends Controller
 
     public function isiReview($id)
     {
-        $proposal = Proposal::findOrFail($id);
+        $proposal = Proposal::with('reviewers')->findOrFail($id);
 
-      if (Auth::user()->role === 'reviewer') {
-    if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
-        abort(403, 'Anda bukan reviewer yang ditugaskan.');
-    }
-}
+        if (Auth::user()->role === 'reviewer') {
+            if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
+                abort(403, 'Anda bukan reviewer yang ditugaskan.');
+            }
+        }
 
         if ($proposal->status === 'Perlu Direview') {
             $proposal->update(['status' => 'Sedang Direview']);
@@ -48,14 +48,13 @@ class ReviewerController extends Controller
 
     public function submitReview(Request $request, $id)
     {
-        $proposal = Proposal::findOrFail($id);
+        $proposal = Proposal::with('reviewers')->findOrFail($id);
 
         if (Auth::user()->role === 'reviewer') {
-    if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
-        abort(403, 'Anda bukan reviewer yang ditugaskan.');
-    }
-}
-
+            if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
+                abort(403, 'Anda bukan reviewer yang ditugaskan.');
+            }
+        }
 
         $request->validate([
             'nilai_1' => 'nullable|integer|min:0|max:5',
@@ -66,7 +65,7 @@ class ReviewerController extends Controller
             'nilai_6' => 'nullable|integer|min:0|max:5',
             'nilai_7' => 'nullable|integer|min:0|max:5',
             'catatan' => 'nullable|string',
-            'status'  => 'nullable|string',
+            'status'  => 'nullable|string', // status dari form (dipakai untuk finalStatus)
         ]);
 
         $totalScore = collect([
@@ -79,28 +78,65 @@ class ReviewerController extends Controller
             $request->nilai_7,
         ])->filter()->sum();
 
-        Review::create([
-            'proposal_id' => $proposal->id,
-            'reviewer_id' => Auth::id(),
-            'nilai_1'     => $request->nilai_1,
-            'nilai_2'     => $request->nilai_2,
-            'nilai_3'     => $request->nilai_3,
-            'nilai_4'     => $request->nilai_4,
-            'nilai_5'     => $request->nilai_5,
-            'nilai_6'     => $request->nilai_6,
-            'nilai_7'     => $request->nilai_7,
-            'catatan'     => $request->catatan,
-            'total_score' => $totalScore,
-        ]);
+        // ✅ LOCK: kalau reviewer ini sudah submit untuk proposal ini, stop (tidak boleh submit ulang)
+        $alreadySubmitted = Review::where('proposal_id', $proposal->id)
+            ->where('reviewer_id', Auth::id())
+            ->exists();
 
-        $proposal->update([
-            'status' => match ($request->status) {
+        if ($alreadySubmitted) {
+            return redirect()->back()->with('error', 'Anda sudah submit review untuk proposal ini. Review tidak bisa diubah lagi.');
+        }
+
+        // ✅ simpan review per reviewer (kalau sudah ada → update)
+        // NOTE: kolom `status` di tabel reviews kamu BELUM ADA (error SQLSTATE[42S22]),
+        // jadi JANGAN simpan status ke tabel reviews dulu.
+        // Kalau nanti kamu sudah bikin migration add_status_to_reviews_table,
+        // baru boleh tambahkan: 'status' => $request->status,
+        Review::updateOrCreate(
+            [
+                'proposal_id' => $proposal->id,
+                'reviewer_id' => Auth::id(),
+            ],
+            [
+                'nilai_1'     => $request->nilai_1,
+                'nilai_2'     => $request->nilai_2,
+                'nilai_3'     => $request->nilai_3,
+                'nilai_4'     => $request->nilai_4,
+                'nilai_5'     => $request->nilai_5,
+                'nilai_6'     => $request->nilai_6,
+                'nilai_7'     => $request->nilai_7,
+                'catatan'     => $request->catatan,
+                'total_score' => $totalScore,
+            ]
+        );
+
+        // ===========================
+        // ✅ LOGIKA 2 REVIEWER WAJIB
+        // ===========================
+        $jumlahReviewerDitugaskan = $proposal->reviewers->count();
+
+        // hitung jumlah review unik (per reviewer) untuk proposal ini
+        $jumlahReviewMasuk = Review::where('proposal_id', $proposal->id)
+            ->distinct('reviewer_id')
+            ->count('reviewer_id');
+
+        // Proposal baru "Review Selesai" kalau semua reviewer sudah submit
+        if ($jumlahReviewerDitugaskan > 0 && $jumlahReviewMasuk >= $jumlahReviewerDitugaskan) {
+
+            // final status baru ditentukan kalau 2 reviewer sudah submit
+            $finalStatus = match ($request->status) {
                 'disetujui' => 'Disetujui',
                 'ditolak'   => 'Ditolak',
                 'direvisi'  => 'Direvisi',
                 default     => 'Review Selesai',
-            }
-        ]);
+            };
+
+            $proposal->update(['status' => $finalStatus]);
+
+        } else {
+            // masih menunggu reviewer lainnya
+            $proposal->update(['status' => 'Sedang Direview']);
+        }
 
         return redirect()->back()->with('success', 'Review berhasil disimpan.');
     }

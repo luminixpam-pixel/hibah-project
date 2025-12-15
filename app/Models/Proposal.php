@@ -20,7 +20,13 @@ class Proposal extends Model
     ];
 
     public function reviewers()
-{
-    return $this->belongsToMany(User::class, 'proposal_reviewers', 'proposal_id', 'reviewer_id');
-}
+    {
+        return $this->belongsToMany(User::class, 'proposal_reviewers', 'proposal_id', 'reviewer_id');
+    }
+
+    // ✅ tambahan: relasi ke tabel reviews
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'proposal_id');
+    }
 }

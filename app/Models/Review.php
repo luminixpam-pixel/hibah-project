@@ -21,13 +21,19 @@ class Review extends Model
         'nilai_5',
         'nilai_6',
         'nilai_7',
-        'status',      // kalau kolom ini ada di tabel
-        'catatan',     // kalau kolom ini ada di tabel
-        'total_score', // ⬅️ penting
+        'status',
+        'catatan',
+        'total_score',
     ];
 
     public function proposal()
     {
         return $this->belongsTo(Proposal::class);
+    }
+
+    // ✅ tambahan supaya bisa ambil data reviewer (nama, dll)
+    public function reviewer()
+    {
+        return $this->belongsTo(User::class, 'reviewer_id');
     }
 }
