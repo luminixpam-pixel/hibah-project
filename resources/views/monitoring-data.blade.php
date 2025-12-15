@@ -14,16 +14,16 @@
     $ajaranEndYear = $ajaranStartYear + 1;
 
     $events = [
-        ['title'=>'Penerimaan Proposal', 'start'=>"$usulanYear-02-01", 'end'=>"$usulanYear-04-30", 'icon'=>'📥'],
-        ['title'=>'Pengumpulan Proposal ke Universitas', 'start'=>"$usulanYear-05-01", 'end'=>"$usulanYear-05-31", 'icon'=>'📤'],
-        ['title'=>'Review & Perbaikan', 'start'=>"$usulanYear-06-01", 'end'=>"$usulanYear-07-31", 'icon'=>'📝'],
-        ['title'=>'Pengumuman Proposal Didanai', 'start'=>"$usulanYear-07-15", 'end'=>null, 'icon'=>'📢'],
-        ['title'=>'Tanda Tangan Kontrak', 'start'=>"$usulanYear-08-01", 'end'=>"$usulanYear-08-31", 'icon'=>'✒️'],
-        ['title'=>'Pencairan Dana Penelitian', 'start'=>"$usulanYear-08-10", 'end'=>null, 'icon'=>'💰'],
-        ['title'=>'Pelaksanaan Penelitian', 'start'=>"$ajaranStartYear-08-15", 'end'=>"$ajaranEndYear-07-31", 'icon'=>'🔬'],
-        ['title'=>'Monitoring Evaluasi', 'start'=>"$ajaranEndYear-03-10", 'end'=>"$ajaranEndYear-03-20", 'icon'=>'📊'],
-        ['title'=>'Laporan Akhir', 'start'=>"$ajaranEndYear-07-10", 'end'=>"$ajaranEndYear-07-31", 'icon'=>'📚'],
-        ['title'=>'Publikasi & Seminar', 'start'=>"$ajaranEndYear-08-01", 'end'=>"$ajaranEndYear-12-31", 'icon'=>'🎤'],
+        ['title'=>'Penerimaan Proposal', 'start'=>"$usulanYear-02-01", 'end'=>"$usulanYear-04-30"],
+        ['title'=>'Pengumpulan Proposal ke Universitas', 'start'=>"$usulanYear-05-01", 'end'=>"$usulanYear-05-31"],
+        ['title'=>'Review & Perbaikan', 'start'=>"$usulanYear-06-01", 'end'=>"$usulanYear-07-31"],
+        ['title'=>'Pengumuman Proposal Didanai', 'start'=>"$usulanYear-07-15", 'end'=>null],
+        ['title'=>'Tanda Tangan Kontrak', 'start'=>"$usulanYear-08-01", 'end'=>"$usulanYear-08-31"],
+        ['title'=>'Pencairan Dana Penelitian', 'start'=>"$usulanYear-08-10", 'end'=>null],
+        ['title'=>'Pelaksanaan Penelitian', 'start'=>"$ajaranStartYear-08-15", 'end'=>"$ajaranEndYear-07-31"],
+        ['title'=>'Monitoring Evaluasi', 'start'=>"$ajaranEndYear-03-10", 'end'=>"$ajaranEndYear-03-20"],
+        ['title'=>'Laporan Akhir', 'start'=>"$ajaranEndYear-07-10", 'end'=>"$ajaranEndYear-07-31"],
+        ['title'=>'Publikasi & Seminar', 'start'=>"$ajaranEndYear-08-01", 'end'=>"$ajaranEndYear-12-31"],
     ];
 @endphp
 
@@ -62,7 +62,7 @@
                         @endphp
                         <tr>
                             <td>{{ $periode }}</td>
-                            <td>{{ $event['icon'] }} {{ $event['title'] }}</td>
+                            <td>{{ $event['title'] }}</td>
                             <td>{{ $tahun }}</td>
                         </tr>
                     @endforeach
@@ -212,16 +212,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const akhirPengajuan = periodEndFromDb || defaultAkhir;
 
         return [
-            { title:"📥 Penerimaan Proposal", start:mulaiPengajuan, end:akhirPengajuan, color:"#2e7d32" },
-            { title:"📤 Pengumpulan ke Universitas", start:`${usulanYear}-05-01`, end:`${usulanYear}-05-31`, color:"#1565c0" },
-            { title:"📝 Review & Perbaikan", start:`${usulanYear}-06-01`, end:`${usulanYear}-07-31`, color:"#f9a825" },
-            { title:"📢 Pengumuman Proposal Didanai", start:`${usulanYear}-07-15`, color:"#8e24aa" },
-            { title:"✒️ Tanda Tangan Kontrak", start:`${usulanYear}-08-01`, end:`${usulanYear}-08-31`, color:"#5d4037" },
-            { title:"💰 Pencairan Dana Penelitian", start:`${usulanYear}-08-10`, color:"#00897b" },
-            { title:"🔬 Pelaksanaan Penelitian", start:`${ajaranStartYear}-08-15`, end:`${pelaksanaanEnd}-07-31`, color:"#388e3c" },
-            { title:"📊 Monitoring Evaluasi", start:`${pelaksanaanEnd}-03-10`, end:`${pelaksanaanEnd}-03-20`, color:"#ff9800" },
-            { title:"📚 Laporan Akhir", start:`${pelaksanaanEnd}-07-10`, end:`${pelaksanaanEnd}-07-31`, color:"#3f51b5" },
-            { title:"🎤 Publikasi & Seminar", start:`${pelaksanaanEnd}-08-01`, end:`${pelaksanaanEnd}-12-31`, color:"#6d4c41" }
+            { title:"Penerimaan Proposal", start:mulaiPengajuan, end:akhirPengajuan, color:"#2e7d32" },
+            { title:"Pengumpulan ke Universitas", start:`${usulanYear}-05-01`, end:`${usulanYear}-05-31`, color:"#1565c0" },
+            { title:"Review & Perbaikan", start:`${usulanYear}-06-01`, end:`${usulanYear}-07-31`, color:"#f9a825" },
+            { title:"Pengumuman Proposal Didanai", start:`${usulanYear}-07-15`, color:"#8e24aa" },
+            { title:"Tanda Tangan Kontrak", start:`${usulanYear}-08-01`, end:`${usulanYear}-08-31`, color:"#5d4037" },
+            { title:"Pencairan Dana Penelitian", start:`${usulanYear}-08-10`, color:"#00897b" },
+            { title:"Pelaksanaan Penelitian", start:`${ajaranStartYear}-08-15`, end:`${pelaksanaanEnd}-07-31`, color:"#388e3c" },
+            { title:"Monitoring Evaluasi", start:`${pelaksanaanEnd}-03-10`, end:`${pelaksanaanEnd}-03-20`, color:"#ff9800" },
+            { title:"Laporan Akhir", start:`${pelaksanaanEnd}-07-10`, end:`${pelaksanaanEnd}-07-31`, color:"#3f51b5" },
+            { title:"Publikasi & Seminar", start:`${pelaksanaanEnd}-08-01`, end:`${pelaksanaanEnd}-12-31`, color:"#6d4c41" }
         ];
     }
 

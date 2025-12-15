@@ -126,20 +126,37 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    const openBtn = document.getElementById("openPopupBtn");
+    // ✅ FIX: karena ID openPopupBtn ada 2 (navbar + tombol), ambil semuanya
+    const openBtns = document.querySelectorAll("#openPopupBtn");
     const closeBtn = document.getElementById("closePopupBtn");
     const popup = document.getElementById("proposalPopup");
 
-    if(openBtn){
-        openBtn.addEventListener("click", ()=>{ popup.style.display="flex"; setTimeout(()=>popup.classList.add("active"),10); });
+    if(openBtns.length){
+        openBtns.forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                if(!popup) return;
+
+                popup.style.display="flex";
+                setTimeout(()=>popup.classList.add("active"),10);
+            });
+        });
     }
 
-    if(closeBtn){
-        closeBtn.addEventListener("click", ()=>{ popup.classList.remove("active"); setTimeout(()=>popup.style.display="none",250); });
+    if(closeBtn && popup){
+        closeBtn.addEventListener("click", ()=>{
+            popup.classList.remove("active");
+            setTimeout(()=>popup.style.display="none",250);
+        });
     }
 
     if(popup){
-        popup.addEventListener("click", e=>{ if(e.target===popup){ popup.classList.remove("active"); setTimeout(()=>popup.style.display="none",250); } });
+        popup.addEventListener("click", e=>{
+            if(e.target===popup){
+                popup.classList.remove("active");
+                setTimeout(()=>popup.style.display="none",250);
+            }
+        });
     }
 
     // Tambah anggota dinamis

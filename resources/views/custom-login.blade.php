@@ -45,7 +45,9 @@
     <div class="login-card">
         <img src="{{ asset('images/logo-ehibah.png') }}" alt="Logo E-Hibah">
         <br>
-        <button class="btn-login" onclick="window.location.href='{{ route('filament.admin.auth.login') }}'">
+
+        {{-- INI HARUS KE LOGIN BUATAN KAMU, BUKAN FILAMENT --}}
+        <button class="btn-login" onclick="window.location.href='{{ route('login') }}'">
             Masuk
         </button>
     </div>

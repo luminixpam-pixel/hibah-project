@@ -3,7 +3,7 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;<?php
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 namespace App\Notifications;
 

@@ -57,17 +57,27 @@
 
             <tbody>
                 @forelse($proposals as $index => $proposal)
+                    @php
+                        // ✅ ambil reviewer dari relasi pivot reviewers()
+                        $reviewerNames = ($proposal->reviewers ?? collect())->pluck('name')->implode(', ');
+                        $isAssignedReviewer = ($proposal->reviewers ?? collect())->pluck('id')->contains(auth()->id());
+                    @endphp
+
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td>{{ $proposal->reviewer ?? '-' }}</td>
+
+                        {{-- ✅ tampilkan reviewer dari pivot --}}
+                        <td>{{ $reviewerNames ?: '-' }}</td>
+
                         <td>{{ $proposal->nama_ketua }}</td>
                         <td>{{ $proposal->judul }}</td>
                         <td>
                             <span class="badge bg-success">Sedang Direview</span>
                         </td>
+
                         <td>
                             @if(auth()->user()->role === 'reviewer')
-                                @if($proposal->reviewer === auth()->user()->name)
+                                @if($isAssignedReviewer)
                                     {{-- tombol khusus reviewer yang ditugaskan --}}
                                     <a href="{{ route('reviewer.isi-review', $proposal->id) }}"
                                        class="btn btn-success btn-sm">

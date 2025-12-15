@@ -61,16 +61,26 @@
                     <th>Status Review</th>
                     <th>Catatan</th>
                     <th>Tanggal Review</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
 
             <tbody>
                 @forelse($reviews as $index => $review)
+                    @php
+                        // ✅ fallback: reviewer dari pivot jika relasi proposal->reviewers ada
+                        $reviewerFromPivot = optional(optional($review->proposal)->reviewers ?? collect())->pluck('name')->implode(', ');
+                        $reviewerShow = $review->reviewer_nama ?? ($reviewerFromPivot ?: '-');
+                    @endphp
+
                     <tr>
                         <td>{{ $index + 1 }}</td>
                         <td>{{ $review->judul }}</td>
                         <td>{{ $review->nama_ketua }}</td>
-                        <td>{{ $review->reviewer_nama ?? '-' }}</td>
+
+                        {{-- ✅ tampilkan reviewer --}}
+                        <td>{{ $reviewerShow }}</td>
+
                         <td>{{ $review->proposal_status ?? '-' }}</td>
                         <td>{{ $review->total_score ?? '-' }}</td>
                         <td>{{ $review->status ?? '-' }}</td>
@@ -78,10 +88,22 @@
                             {{ $review->catatan ?? '-' }}
                         </td>
                         <td>{{ $review->created_at?->format('d-m-Y H:i') }}</td>
+
+                        {{-- ✅ AKSI: Download --}}
+                        <td>
+                            @if(!empty($review->proposal_id))
+                                <a href="{{ route('proposal.download', $review->proposal_id) }}"
+                                   class="btn btn-outline-success btn-sm btn-action">
+                                    Download
+                                </a>
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-3">
+                        <td colspan="10" class="text-center text-muted py-3">
                             Belum ada review yang selesai.
                         </td>
                     </tr>

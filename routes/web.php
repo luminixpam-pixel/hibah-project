@@ -133,6 +133,12 @@ Route::middleware(['auth', 'role:admin,reviewer'])->group(function () {
     Route::get('/proposal-sedang-direview',
         [ProposalController::class, 'proposalSedangDireview'])
         ->name('monitoring.proposalSedangDireview');
+
+    // ✅ INI YANG KURANG (route name harus sama dengan yang dipanggil di blade)
+    // pakai {proposal} biar cocok dengan method moveToPerluDireview(Proposal $proposal)
+    Route::patch('/proposal/{proposal}/move-to-perlu-direview',
+        [ProposalController::class, 'moveToPerluDireview'])
+        ->name('proposal.moveToPerluDireview');
 });
 
 /*
@@ -244,12 +250,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('/admin/reviewer/{user}', [ReviewerController::class, 'setReviewer'])
         ->name('admin.reviewer.set');
 
-        Route::get('/admin/search-reviewer', [ReviewerController::class, 'searchReviewer'])
-    ->middleware('auth')
-    ->name('admin.searchReviewer');
+    Route::get('/admin/search-reviewer', [ReviewerController::class, 'searchReviewer'])
+        ->middleware('auth')
+        ->name('admin.searchReviewer');
 
     Route::post('/proposal/{proposal}/assign-reviewer', [ProposalController::class, 'assignReviewer'])->name('proposal.assignReviewer');
-
-
 });
-

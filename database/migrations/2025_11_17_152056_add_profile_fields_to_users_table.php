@@ -9,25 +9,66 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-   public function up()
-{
-    Schema::table('users', function (Blueprint $table) {
-        $table->string('nidn')->nullable();
-        $table->string('phone')->nullable();
-        $table->string('fakultas')->nullable();
-        $table->string('prodi')->nullable();
-        $table->string('jabatan')->nullable();
-        $table->string('role')->default('User');
-    });
-}
+    public function up()
+    {
+        Schema::table('users', function (Blueprint $table) {
+
+            if (!Schema::hasColumn('users', 'nidn')) {
+                $table->string('nidn')->nullable();
+            }
+
+            if (!Schema::hasColumn('users', 'phone')) {
+                $table->string('phone')->nullable();
+            }
+
+            if (!Schema::hasColumn('users', 'fakultas')) {
+                $table->string('fakultas')->nullable();
+            }
+
+            if (!Schema::hasColumn('users', 'prodi')) {
+                $table->string('prodi')->nullable();
+            }
+
+            if (!Schema::hasColumn('users', 'jabatan')) {
+                $table->string('jabatan')->nullable();
+            }
+
+            if (!Schema::hasColumn('users', 'role')) {
+                $table->string('role')->default('User');
+            }
+        });
+    }
 
     /**
      * Reverse the migrations.
      */
     public function down()
-{
-    Schema::table('users', function (Blueprint $table) {
-        $table->dropColumn(['nidn', 'phone', 'fakultas', 'prodi', 'jabatan', 'role']);
-    });
-}
+    {
+        Schema::table('users', function (Blueprint $table) {
+
+            if (Schema::hasColumn('users', 'nidn')) {
+                $table->dropColumn('nidn');
+            }
+
+            if (Schema::hasColumn('users', 'phone')) {
+                $table->dropColumn('phone');
+            }
+
+            if (Schema::hasColumn('users', 'fakultas')) {
+                $table->dropColumn('fakultas');
+            }
+
+            if (Schema::hasColumn('users', 'prodi')) {
+                $table->dropColumn('prodi');
+            }
+
+            if (Schema::hasColumn('users', 'jabatan')) {
+                $table->dropColumn('jabatan');
+            }
+
+            if (Schema::hasColumn('users', 'role')) {
+                $table->dropColumn('role');
+            }
+        });
+    }
 };
