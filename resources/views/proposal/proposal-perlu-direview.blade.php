@@ -48,9 +48,11 @@
                     <th width="260">Reviewer</th>
                     <th>Pengusul</th>
                     <th>Judul Proposal</th>
+                    <th width="160">Tenggat Review</th>
                     <th width="140">Aksi</th>
                 </tr>
             </thead>
+
 
             <tbody>
             @forelse ($proposals as $index => $proposal)
@@ -100,6 +102,19 @@
                             <div class="autocomplete-box d-none"
                                  id="rev2_box_{{ $proposal->id }}"></div>
 
+                            {{-- ================= TENGGAT REVIEW (KHUSUS ADMIN) ================= --}}
+                                <div class="mb-1">
+                                    <label class="form-label small text-muted mb-0">
+                                        Tenggat Review
+                                    </label>
+                                    <input type="datetime-local"
+                                        name="review_deadline"
+                                        class="form-control form-control-sm"
+                                        value="{{ $proposal->review_deadline ? \Carbon\Carbon::parse($proposal->review_deadline)->format('Y-m-d\TH:i') : '' }}"
+                                        required>
+                                </div>
+
+
                             <button type="submit"
                                     class="btn btn-outline-primary btn-sm w-100 mt-1">
                                 Kirim ke Reviewer
@@ -117,21 +132,58 @@
 
                     <td>{{ $proposal->nama_ketua }}</td>
                     <td>{{ $proposal->judul }}</td>
+                    <td>
+                        @if($proposal->review_deadline)
+                            @php
+                                $deadline = \Carbon\Carbon::parse($proposal->review_deadline);
+                            @endphp
+
+                            <div class="small">
+                                <strong>{{ $deadline->format('d M Y') }}</strong><br>
+                                <span class="text-muted">
+                                    {{ $deadline->format('H:i') }} WIB
+                                </span>
+
+                                {{-- WARNING JIKA MELEWATI DEADLINE --}}
+                                @if(now()->gt($deadline))
+                                    <div class="text-danger fw-semibold">
+                                        ⛔ Lewat Tenggat
+                                    </div>
+                                @elseif(now()->diffInHours($deadline) <= 24)
+                                    <div class="text-warning fw-semibold">
+                                        ⚠️ Kurang dari 24 jam
+                                    </div>
+                                @endif
+                            </div>
+                        @else
+                            <span class="text-muted">Belum ditentukan</span>
+                        @endif
+                    </td>
+
 
                     {{-- ================= AKSI ================= --}}
                     <td>
                         @if(auth()->user()->role === 'reviewer')
-                            @if($proposal->reviewers->pluck('id')->contains(auth()->id()))
-                                <a href="{{ route('reviewer.isi-review', $proposal->id) }}"
-                                   class="btn btn-success btn-sm w-100">
-                                    Beri Review
-                                </a>
+                        @if($proposal->reviewers->pluck('id')->contains(auth()->id()))
+
+                            @if($proposal->review_deadline && now()->gt($proposal->review_deadline))
+                                <button class="btn btn-secondary btn-sm w-100" disabled>
+                                    Tenggat Berakhir
+                                </button>
                             @else
-                                <span class="text-muted">—</span>
-                            @endif
-                        @else
-                            <span class="text-muted">—</span>
+                                <a href="{{ route('reviewer.isi-review', $proposal->id) }}"
+                                class="btn btn-success btn-sm w-100">
+                                    Beri Review
+                         </a>
                         @endif
+
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                @else
+                    <span class="text-muted">—</span>
+                @endif
+
                     </td>
                 </tr>
             @empty

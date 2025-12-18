@@ -55,6 +55,7 @@
                     <th>Pengusul</th>
                     <th>Judul Proposal</th>
                     <th>Status</th>
+                    <th>Tenggat Review</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
@@ -89,6 +90,34 @@
                         <td>
                             <span class="badge bg-success">Sedang Direview</span>
                         </td>
+                        <td>
+                            @if($proposal->review_deadline)
+                                @php
+                                    $deadline = \Carbon\Carbon::parse($proposal->review_deadline);
+                                @endphp
+
+                                <div class="small">
+                                    <strong>{{ $deadline->format('d M Y') }}</strong><br>
+                                    <span class="text-muted">
+                                        {{ $deadline->format('H:i') }} WIB
+                                    </span>
+
+                                    {{-- indikator --}}
+                                    @if(now()->gt($deadline))
+                                        <div class="text-danger fw-semibold">
+                                            ⛔ Lewat Tenggat
+                                        </div>
+                                    @elseif(now()->diffInHours($deadline) <= 24)
+                                        <div class="text-warning fw-semibold">
+                                            ⚠️ Kurang dari 24 jam
+                                        </div>
+                                    @endif
+                                </div>
+                            @else
+                                <span class="text-muted">Belum ditentukan</span>
+                            @endif
+                        </td>
+
 
                         <td>
                             @if(auth()->user()->role === 'reviewer')
@@ -109,7 +138,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-3">
+                       <td colspan="8" class="text-center text-muted py-3">
                             Belum ada proposal yang sedang direview.
                         </td>
                     </tr>

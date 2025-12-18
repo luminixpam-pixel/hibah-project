@@ -139,6 +139,10 @@ Route::middleware(['auth', 'role:admin,reviewer'])->group(function () {
     Route::patch('/proposal/{proposal}/move-to-perlu-direview',
         [ProposalController::class, 'moveToPerluDireview'])
         ->name('proposal.moveToPerluDireview');
+
+    Route::post('/admin/proposal/{id}/assign-reviewer',
+    [AdminController::class, 'assignReviewer']
+)->name('proposal.assignReviewer');
 });
 
 /*
@@ -256,3 +260,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     Route::post('/proposal/{proposal}/assign-reviewer', [ProposalController::class, 'assignReviewer'])->name('proposal.assignReviewer');
 });
+
+Route::put('/proposal/{proposal}/approve',
+    [ProposalController::class, 'approveProposal']
+)->name('proposal.approve');
+
+Route::get('/review/{review}/pdf', [App\Http\Controllers\ProposalController::class, 'downloadReviewPdf'])
+    ->name('review.pdf');

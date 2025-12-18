@@ -10,29 +10,29 @@ use Illuminate\Support\Facades\Schema;
 class NotificationHelper
 {
     // Kirim ke semua user (opsional by role)
-    public static function sendToAll($title, $message = null, $type = 'info', $role = null)
-    {
-        if (!Schema::hasTable('notifications')) return;
+    // Kirim ke semua user
+public static function sendToAll($title, $message = null, $type = 'info', $role = null)
+{
+    if (!Schema::hasTable('notifications')) return;
 
-        $query = User::query();
-        if ($role) {
-            $query->where('role', $role);
-        }
+    $message = $message ?: 'Anda memiliki notifikasi baru.';
 
-        foreach ($query->get() as $user) {
-            try {
-                Notification::create([
-                    'user_id' => $user->id,
-                    'title' => $title,
-                    'message' => $message,
-                    'type' => $type,
-                    'is_read' => false,
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Notif error: '.$e->getMessage());
-            }
-        }
+    $query = User::query();
+    if ($role) {
+        $query->where('role', $role);
     }
+
+    foreach ($query->get() as $user) {
+        Notification::create([
+            'user_id' => $user->id,
+            'title'   => $title,
+            'message' => $message,
+            'type'    => $type,
+            'is_read' => false,
+        ]);
+    }
+}
+
 
     // Kirim ke satu user
     public static function send($userId, $title, $message = null, $type = 'info')

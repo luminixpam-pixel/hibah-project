@@ -83,6 +83,16 @@
             <h5 class="fw-bold">Total Nilai: <span id="total_nilai">0</span></h5>
         </div>
 
+        {{-- KEPUTUSAN REVIEW --}}
+        <div class="mt-3">
+            <label for="status" class="form-label fw-bold">Keputusan Review:</label>
+            <select name="status" id="status" class="form-select" required>
+                <option value="">-- Pilih Keputusan --</option>
+                <option value="disetujui">✅ Disetujui</option>
+                <option value="ditolak">❌ Ditolak</option>
+            </select>
+        </div>
+
         {{-- CATATAN UMUM --}}
         <div class="mt-3 p-3 rounded" style="background:#f2fff1; border:1px solid #cfeccc;">
             <strong>Catatan:</strong><br>
@@ -117,27 +127,40 @@
     </div>
 
     {{-- SCRIPT PERHITUNGAN --}}
-    <script>
-        const bobot = @json($bobot);
+<script>
+    const bobot = @json($bobot);
+    const MAX_SCORE = 5;
+    const TOTAL_BOBOT = bobot.reduce((a, b) => a + b, 0);
+    const MAX_TOTAL = MAX_SCORE * TOTAL_BOBOT;
 
-        function hitung() {
-            let total = 0;
+    function hitung() {
+        let totalSkor = 0;
 
-            for (let i = 1; i <= bobot.length; i++) {
-                let nilai = parseInt(document.querySelector(`input[name=nilai_${i}]`).value) || 0;
-                let score = nilai * bobot[i - 1];
+        for (let i = 1; i <= bobot.length; i++) {
+            let skor = parseInt(
+                document.querySelector(`input[name=nilai_${i}]`).value
+            ) || 0;
 
-                document.getElementById("score_" + i).innerText = score;
-                total += score;
-            }
+            let subtotal = skor * bobot[i - 1];
+            document.getElementById("score_" + i).innerText = subtotal;
 
-            document.getElementById("total_nilai").innerText = total;
+            totalSkor += subtotal;
         }
 
-        document.querySelectorAll("input[type=number]").forEach(el => {
-            el.addEventListener("input", hitung);
-        });
-    </script>
+        // 🔥 Normalisasi ke 0–500
+        let nilaiAkhir = Math.round((totalSkor / MAX_TOTAL) * 500);
+
+        document.getElementById("total_nilai").innerText = nilaiAkhir;
+    }
+
+    document.querySelectorAll("input[type=number]").forEach(el => {
+        el.addEventListener("input", hitung);
+    });
+</script>
+
+
+
+
 
 </div>
 @endsection

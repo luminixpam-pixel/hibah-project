@@ -9,6 +9,7 @@ class ProposalReviewer extends Model
     protected $fillable = [
         'proposal_id',
         'reviewer_id',
+        'review_deadline',
     ];
 
     public function reviewers()

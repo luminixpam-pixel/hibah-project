@@ -65,50 +65,109 @@
                 </tr>
             </thead>
 
-            <tbody>
-                @forelse($reviews as $index => $review)
-                    @php
-                        // ✅ fallback: reviewer dari pivot jika relasi proposal->reviewers ada
-                        $reviewerFromPivot = optional(optional($review->proposal)->reviewers ?? collect())->pluck('name')->implode(', ');
-                        $reviewerShow = $review->reviewer_nama ?? ($reviewerFromPivot ?: '-');
-                    @endphp
+           <tbody>
+@forelse($reviews as $index => $review)
+    @php
+        $proposal   = $review->proposal;
+        $pengusul   = $proposal->user->name ?? '-';
+        $judul      = $proposal->judul ?? '-';
+        $statusProp = $proposal->status ?? '-';
+        $statusRev  = $review->status ?? '-';
 
-                    <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ $review->judul }}</td>
-                        <td>{{ $review->nama_ketua }}</td>
+        $reviewer = $review->reviewer->name
+                    ?? optional($proposal->reviewers ?? collect())->pluck('name')->implode(', ')
+                    ?? '-';
 
-                        {{-- ✅ tampilkan reviewer --}}
-                        <td>{{ $reviewerShow }}</td>
+        $templatePdf = $review->template_pdf
+                        ?? $proposal->template_pdf
+                        ?? null;
+    @endphp
 
-                        <td>{{ $review->proposal_status ?? '-' }}</td>
-                        <td>{{ $review->total_score ?? '-' }}</td>
-                        <td>{{ $review->status ?? '-' }}</td>
-                        <td style="max-width: 250px; white-space: pre-wrap;">
-                            {{ $review->catatan ?? '-' }}
-                        </td>
-                        <td>{{ $review->created_at?->format('d-m-Y H:i') }}</td>
+    <tr>
+        <td>{{ $index + 1 }}</td>
 
-                        {{-- ✅ AKSI: Download --}}
-                        <td>
-                            @if(!empty($review->proposal_id))
-                                <a href="{{ route('proposal.download', $review->proposal_id) }}"
-                                   class="btn btn-outline-success btn-sm btn-action">
-                                    Download
-                                </a>
-                            @else
-                                <span class="text-muted">-</span>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="10" class="text-center text-muted py-3">
-                            Belum ada review yang selesai.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
+        {{-- Judul Proposal --}}
+        <td>{{ $judul }}</td>
+
+        {{-- Pengusul --}}
+        <td>{{ $pengusul }}</td>
+
+        {{-- Reviewer --}}
+        <td>{{ $reviewer }}</td>
+
+        {{-- Status Proposal --}}
+        <td>
+            <span class="badge bg-info">
+                {{ $statusProp }}
+            </span>
+        </td>
+
+        {{-- Total Skor --}}
+        <td>{{ $review->total_score ?? '-' }}</td>
+
+        {{-- Status Review --}}
+        <td>
+            <span class="badge bg-secondary">
+                {{ $statusRev }}
+            </span>
+        </td>
+
+        {{-- Catatan --}}
+        <td style="max-width: 250px; white-space: pre-wrap;">
+            {{ $review->catatan ?? '-' }}
+        </td>
+
+        {{-- Tanggal Review --}}
+        <td>
+            {{ $review->created_at?->format('d M Y') ?? '-' }}
+        </td>
+
+        {{-- AKSI --}}
+        <td class="d-flex gap-1 flex-wrap">
+
+            {{-- Download Proposal --}}
+            @if($proposal)
+               <a href="{{ route('review.pdf', $review->id) }}"
+                    class="btn btn-outline-primary btn-sm btn-action">
+                        Download PDF
+                    </a>
+
+            @endif
+
+            {{-- Download Template Penilaian (PDF) --}}
+            @if($templatePdf)
+                <a href="{{ asset('storage/template_penilaian/' . $templatePdf) }}"
+                   target="_blank"
+                   class="btn btn-outline-primary btn-sm btn-action">
+                    Template PDF
+                </a>
+            @endif
+
+            {{-- Approve Proposal --}}
+            @if($role === 'admin' && $statusProp !== 'Disetujui')
+                <form action="{{ route('proposal.approve', $proposal->id) }}"
+                      method="POST"
+                      onsubmit="return confirm('Yakin setujui proposal ini?')">
+                    @csrf
+                    @method('PUT')
+
+                    <button type="submit"
+                            class="btn btn-success btn-sm btn-action">
+                        Approve
+                    </button>
+                </form>
+            @endif
+        </td>
+    </tr>
+@empty
+    <tr>
+        <td colspan="10" class="text-center text-muted py-3">
+            Belum ada review yang selesai.
+        </td>
+    </tr>
+@endforelse
+</tbody>
+
         </table>
     </div>
 

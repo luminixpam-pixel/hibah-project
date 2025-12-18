@@ -17,6 +17,7 @@ class Proposal extends Model
         'fakultas_prodi',
         'user_id',
         'pengusul',
+        'review_deadline',
     ];
 
     public function reviewers()
@@ -29,4 +30,8 @@ class Proposal extends Model
     {
         return $this->hasMany(Review::class, 'proposal_id');
     }
-}
+
+    protected $casts = [
+        'review_deadline' => 'datetime',
+    ];
+    }

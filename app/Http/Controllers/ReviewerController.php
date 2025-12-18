@@ -7,6 +7,11 @@ use App\Models\Proposal;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Models\Notification; // ⬅️ WAJIB INI
+
+
+
 
 class ReviewerController extends Controller
 {
@@ -26,25 +31,45 @@ class ReviewerController extends Controller
 
         return response()->json($reviewers);
     }
+    public function index()
+    {
+        $proposals = Proposal::with('reviewers')
+            ->whereHas('reviewers', function ($q) {
+                $q->where('users.id', Auth::id());
+            })
+            ->orderBy('review_deadline', 'asc')
+            ->get();
+
+        return view('proposal-perlu-direview', compact('proposals'));
+    }
+
 
     /* ===================== REVIEWER ===================== */
+public function isiReview($id)
+{
+    $proposal = Proposal::with('reviewers')->findOrFail($id);
 
-    public function isiReview($id)
-    {
-        $proposal = Proposal::with('reviewers')->findOrFail($id);
-
-        if (Auth::user()->role === 'reviewer') {
-            if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
-                abort(403, 'Anda bukan reviewer yang ditugaskan.');
-            }
+    // validasi reviewer
+    if (Auth::user()->role === 'reviewer') {
+        if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
+            abort(403, 'Anda bukan reviewer yang ditugaskan.');
         }
-
-        if ($proposal->status === 'Perlu Direview') {
-            $proposal->update(['status' => 'Sedang Direview']);
-        }
-
-        return view('reviewer.isi-review', compact('proposal'));
     }
+
+    // 🔔 TANDAI NOTIFIKASI CUSTOM SEBAGAI DIBACA
+    Notification::where('user_id', Auth::id())
+        ->where('proposal_id', $proposal->id)
+        ->where('is_read', false)
+        ->update(['is_read' => true]);
+
+    // 🔄 Update status proposal
+    if ($proposal->status === 'Perlu Direview') {
+        $proposal->update(['status' => 'Sedang Direview']);
+    }
+
+    return view('reviewer.isi-review', compact('proposal'));
+}
+
 
     public function submitReview(Request $request, $id)
     {

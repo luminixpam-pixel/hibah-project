@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use App\Models\Proposal;
 use App\Models\User;
 use App\Models\Review;
 use Illuminate\Support\Facades\Storage;
 use App\Helpers\NotificationHelper;
+use Carbon\Carbon;
+
 
 class ProposalController extends Controller
 {
@@ -230,56 +233,57 @@ class ProposalController extends Controller
     /**
      * Assign 2 reviewer (pivot proposal_reviewers)
      */
-    public function assignReviewer(Request $request, Proposal $proposal)
-    {
-        $request->validate([
-            'reviewer_1' => 'nullable|exists:users,id',
-            'reviewer_2' => 'nullable|exists:users,id',
-        ]);
 
-        $reviewers = collect([
-            $request->reviewer_1,
-            $request->reviewer_2,
-        ])->filter()->unique()->values();
+public function assignReviewer(Request $request, Proposal $proposal)
+{
+    $request->validate([
+        'reviewer_1' => 'nullable|exists:users,id',
+        'reviewer_2' => 'nullable|exists:users,id',
+    ]);
 
-        // sync ke pivot (proposal_reviewers)
-        $proposal->reviewers()->sync($reviewers);
+    $reviewers = collect([
+        $request->reviewer_1,
+        $request->reviewer_2,
+    ])->filter()->unique()->values();
 
-        // update status proposal
-        $proposal->status = 'Perlu Direview';
-        $proposal->save();
+    $proposal->reviewers()->sync($reviewers);
 
-        // 🔔 Kirim notifikasi ke reviewer yang ditugaskan
-        foreach ($reviewers as $reviewerId) {
-            NotificationHelper::send(
-                $reviewerId,
-                'Proposal Baru Ditugaskan',
-                'Anda telah ditugaskan untuk meninjau proposal: "' . $proposal->judul . '"',
-                'info'
-            );
-        }
+    // set status & deadline
+    $proposal->status = 'Perlu Direview';
+    $proposal->review_deadline = Carbon::now()->addDays(7);
+    $proposal->save();
 
-        return back()->with('success', 'Reviewer berhasil ditetapkan dan notifikasi dikirim.');
+    foreach ($reviewers as $reviewerId) {
+        NotificationHelper::send(
+            $reviewerId,
+            'Proposal Baru Ditugaskan',
+            'Deadline review: ' . Carbon::parse($proposal->review_deadline)->format('d M Y'),
+            'info'
+        );
     }
+
+    return back()->with('success', 'Reviewer & deadline berhasil ditetapkan.');
+}
+
 
     /**
      * Approve Proposal → disetujui
      */
     public function approveProposal(Proposal $proposal)
-    {
-        $proposal->status = 'Disetujui';
-        $proposal->save();
+{
+    $proposal->status = 'Disetujui';
+    $proposal->save();
 
-        // 🔔 Notifikasi ke pengaju
-        NotificationHelper::send(
-            $proposal->user_id,
-            'Proposal Anda disetujui',
-            'Proposal Anda telah disetujui oleh reviewer/admin',
-            'success'
-        );
+    NotificationHelper::send(
+        $proposal->user_id,
+        'Proposal Disetujui 🎉',
+        'Proposal "' . $proposal->judul . '" telah disetujui oleh reviewer.',
+        'success'
+    );
 
-        return back()->with('success', 'Proposal disetujui dan notifikasi telah dikirim.');
-    }
+    return back()->with('success', 'Proposal berhasil disetujui.');
+}
+
 
     /**
      * Tandai Proposal perlu revisi
@@ -299,4 +303,31 @@ class ProposalController extends Controller
 
         return back()->with('success', 'Proposal ditandai perlu revisi dan notifikasi dikirim.');
     }
+
+  public function downloadReviewPdf(Review $review)
+{
+    $proposal = Proposal::findOrFail($review->proposal_id);
+
+    // ✅ DATA PENILAIAN (INI YANG TADI ERROR)
+    $penilaian = [
+        ['kriteria' => 'Kesesuaian Tema', 'nilai' => $review->nilai_1],
+        ['kriteria' => 'Latar Belakang', 'nilai' => $review->nilai_2],
+        ['kriteria' => 'Tujuan Kegiatan', 'nilai' => $review->nilai_3],
+        ['kriteria' => 'Metodologi', 'nilai' => $review->nilai_4],
+        ['kriteria' => 'Luaran', 'nilai' => $review->nilai_5],
+        ['kriteria' => 'Anggaran', 'nilai' => $review->nilai_6],
+        ['kriteria' => 'Kelayakan Proposal', 'nilai' => $review->nilai_7],
+    ];
+
+    $pdf = Pdf::loadView('pdf.hasil_penilaian', [
+        'review' => $review,
+        'proposal' => $proposal,
+        'penilaian' => $penilaian, // 👈 INI KUNCI
+    ]);
+
+    return $pdf->download('hasil-penilaian-proposal.pdf');
+}
+
+
+
 }
