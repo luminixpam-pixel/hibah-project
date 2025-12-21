@@ -214,7 +214,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/proposal-direvisi', [ProposalController::class, 'proposalDirevisi'])
         ->name('monitoring.proposalDirevisi');
 
-    // ✅ INI YANG DIUBAH: Hasil Revisi harus lewat controller biar ada data $proposals
+    // ✅ Hasil Revisi harus lewat controller biar ada data $proposals
     Route::get('/hasil-review', [ProposalController::class, 'hasilRevisi'])
         ->name('monitoring.hasilRevisi');
 });

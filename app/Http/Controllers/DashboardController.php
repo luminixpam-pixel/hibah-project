@@ -28,7 +28,10 @@ class DashboardController extends Controller
         $daftarProposalCount    = (clone $baseQuery)->where('status', 'Dikirim')->count();
         $perluDireviewCount     = (clone $baseQuery)->where('status', 'Perlu Direview')->count();
         $sedangDireviewCount    = (clone $baseQuery)->where('status', 'Sedang Direview')->count();
-        $reviewSelesaiCount     = (clone $baseQuery)->where('status', 'Review Selesai')->count();
+
+        // ✅ FIX: Review Selesai juga menghitung yang sudah masuk "Hasil Revisi"
+        $reviewSelesaiCount     = (clone $baseQuery)->whereIn('status', ['Review Selesai', 'Hasil Revisi'])->count();
+
         $disetujuiCount         = (clone $baseQuery)->where('status', 'Disetujui')->count();
         $ditolakCount           = (clone $baseQuery)->where('status', 'Ditolak')->count();
         $direvisiCount          = (clone $baseQuery)->where('status', 'Direvisi')->count();
