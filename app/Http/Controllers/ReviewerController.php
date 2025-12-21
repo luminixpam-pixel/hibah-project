@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Notification; // ⬅️ WAJIB INI
 
-
-
-
 class ReviewerController extends Controller
 {
     /**
@@ -31,6 +28,7 @@ class ReviewerController extends Controller
 
         return response()->json($reviewers);
     }
+
     public function index()
     {
         $proposals = Proposal::with('reviewers')
@@ -43,33 +41,31 @@ class ReviewerController extends Controller
         return view('proposal-perlu-direview', compact('proposals'));
     }
 
-
     /* ===================== REVIEWER ===================== */
-public function isiReview($id)
-{
-    $proposal = Proposal::with('reviewers')->findOrFail($id);
+    public function isiReview($id)
+    {
+        $proposal = Proposal::with('reviewers')->findOrFail($id);
 
-    // validasi reviewer
-    if (Auth::user()->role === 'reviewer') {
-        if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
-            abort(403, 'Anda bukan reviewer yang ditugaskan.');
+        // validasi reviewer
+        if (Auth::user()->role === 'reviewer') {
+            if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
+                abort(403, 'Anda bukan reviewer yang ditugaskan.');
+            }
         }
+
+        // 🔔 TANDAI NOTIFIKASI CUSTOM SEBAGAI DIBACA
+        Notification::where('user_id', Auth::id())
+            ->where('proposal_id', $proposal->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        // 🔄 Update status proposal
+        if ($proposal->status === 'Perlu Direview') {
+            $proposal->update(['status' => 'Sedang Direview']);
+        }
+
+        return view('reviewer.isi-review', compact('proposal'));
     }
-
-    // 🔔 TANDAI NOTIFIKASI CUSTOM SEBAGAI DIBACA
-    Notification::where('user_id', Auth::id())
-        ->where('proposal_id', $proposal->id)
-        ->where('is_read', false)
-        ->update(['is_read' => true]);
-
-    // 🔄 Update status proposal
-    if ($proposal->status === 'Perlu Direview') {
-        $proposal->update(['status' => 'Sedang Direview']);
-    }
-
-    return view('reviewer.isi-review', compact('proposal'));
-}
-
 
     public function submitReview(Request $request, $id)
     {
@@ -90,7 +86,7 @@ public function isiReview($id)
             'nilai_6' => 'nullable|integer|min:0|max:5',
             'nilai_7' => 'nullable|integer|min:0|max:5',
             'catatan' => 'nullable|string',
-            'status'  => 'nullable|string', // status dari form (dipakai untuk finalStatus)
+            'status'  => 'nullable|string', // status dari form (dipakai untuk finalStatus) -> sekarang tidak dipakai untuk menentukan status proposal
         ]);
 
         $totalScore = collect([
@@ -145,18 +141,11 @@ public function isiReview($id)
             ->distinct('reviewer_id')
             ->count('reviewer_id');
 
-        // Proposal baru "Review Selesai" kalau semua reviewer sudah submit
+        // ✅ KUNCI: Reviewer TIDAK BOLEH menentukan Disetujui/Ditolak/Direvisi
+        // Proposal hanya masuk ke "Review Selesai" kalau semua reviewer sudah submit.
         if ($jumlahReviewerDitugaskan > 0 && $jumlahReviewMasuk >= $jumlahReviewerDitugaskan) {
 
-            // final status baru ditentukan kalau 2 reviewer sudah submit
-            $finalStatus = match ($request->status) {
-                'disetujui' => 'Disetujui',
-                'ditolak'   => 'Ditolak',
-                'direvisi'  => 'Direvisi',
-                default     => 'Review Selesai',
-            };
-
-            $proposal->update(['status' => $finalStatus]);
+            $proposal->update(['status' => 'Review Selesai']);
 
         } else {
             // masih menunggu reviewer lainnya

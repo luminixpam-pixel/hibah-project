@@ -56,45 +56,56 @@
             </thead>
 
             <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>Analisis Efektivitas Obat Herbal</td>
-                    <td>Prof. Pratiwi P. Sudarmono</td>
-                    <td>Dr. Ahmad Faisal</td>
-                    <td><span class="badge bg-success">Selesai</span></td>
-                    <td>
-                        <button class="btn btn-warning btn-action me-1">
-                            <i class="bi bi-pencil-square"></i> Revisi
-                        </button>
+                @forelse($proposals as $i => $proposal)
+                    <tr>
+                        <td>{{ $i + 1 }}</td>
 
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
+                        <td>{{ $proposal->judul ?? '-' }}</td>
 
-                <tr>
-                    <td>2</td>
-                    <td>Pemanfaatan AI untuk Deteksi Penyakit Kulit</td>
-                    <td>Dr. Ratna Sitompul</td>
-                    <td>Prof. Hartono</td>
-                    <td><span class="badge bg-success">Selesai</span></td>
-                    <td>
-                        <button class="btn btn-warning btn-action me-1">
-                            <i class="bi bi-pencil-square"></i> Revisi
-                        </button>
+                        {{-- Pengusul --}}
+                        <td>
+                            {{ $proposal->user->name ?? ($proposal->nama_ketua ?? '-') }}
+                        </td>
 
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
+                        {{-- Reviewer --}}
+                        <td>
+                            @php
+                                $reviewerNames = '-';
+                                if (!empty($proposal->reviewers) && $proposal->reviewers->count() > 0) {
+                                    $reviewerNames = $proposal->reviewers->pluck('name')->implode(', ');
+                                }
+                            @endphp
+                            {{ $reviewerNames }}
+                        </td>
 
+                        {{-- Status --}}
+                        <td>
+                            <span class="badge bg-success">Hasil Revisi</span>
+                        </td>
+
+                        {{-- Aksi --}}
+                        <td>
+                            <a href="{{ route('proposal.edit', $proposal->id) }}" class="btn btn-warning btn-action me-1">
+                                <i class="bi bi-pencil-square"></i> Revisi
+                            </a>
+
+                            <a href="{{ route('proposal.download', $proposal->id) }}" class="btn btn-primary btn-action">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="text-center text-secondary py-4">
+                            Belum ada data hasil revisi.
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 
-    {{-- 🔁 PREV / NEXT (wrap ke Daftar Proposal) --}}
+    {{-- 🔁 PREV / NEXT --}}
     <div class="d-flex justify-content-between mt-3">
         <a href="{{ route('monitoring.proposalDirevisi') }}"
            class="btn btn-outline-success btn-sm">

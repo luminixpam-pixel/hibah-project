@@ -21,6 +21,14 @@ class NotificationController extends Controller
             ->limit(10)
             ->get();
 
+        // ✅ SAFETY: biar tidak ada "null" tampil di UI kalau data lama masih ada title null
+        $notifications->transform(function ($notif) {
+            if (empty($notif->title)) {
+                $notif->title = 'Proposal Baru Ditugaskan';
+            }
+            return $notif;
+        });
+
         return response()->json($notifications);
     }
 

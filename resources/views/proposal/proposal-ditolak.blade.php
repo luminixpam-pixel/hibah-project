@@ -56,33 +56,33 @@
             </thead>
 
             <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>Analisis Efektivitas Obat Herbal</td>
-                    <td>Prof. Pratiwi P. Sudarmono</td>
-                    <td>Dr. Ahmad Faisal</td>
-                    <td><span class="badge bg-success">Ditolak</span></td>
-                    <td>
+                @forelse($proposals as $index => $proposal)
+                    @php
+                        $pengusul = $proposal->user->name ?? '-';
+                        $judul    = $proposal->judul ?? '-';
+                        $tanggal  = $proposal->updated_at?->format('d M Y') ?? ($proposal->created_at?->format('d M Y') ?? '-');
+                    @endphp
 
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td>2</td>
-                    <td>Pemanfaatan AI untuk Deteksi Penyakit Kulit</td>
-                    <td>Dr. Ratna Sitompul</td>
-                    <td>Prof. Hartono</td>
-                    <td><span class="badge bg-success">Ditolak</span></td>
-                    <td>
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
-
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $tanggal }}</td>
+                        <td>{{ $pengusul }}</td>
+                        <td>{{ $judul }}</td>
+                        <td><span class="badge bg-success">Ditolak</span></td>
+                        <td>
+                            <a href="{{ route('proposal.download', $proposal->id) }}"
+                               class="btn btn-primary btn-action">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-3">
+                            Belum ada proposal yang ditolak.
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>

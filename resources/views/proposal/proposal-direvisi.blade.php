@@ -56,40 +56,60 @@
             </thead>
 
             <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>Analisis Efektivitas Obat Herbal</td>
-                    <td>Prof. Pratiwi P. Sudarmono</td>
-                    <td>Dr. Ahmad Faisal</td>
-                    <td><span class="badge bg-success">Selesai</span></td>
-                    <td>
-                        <button class="btn btn-warning btn-action me-1">
-                            <i class="bi bi-pencil-square"></i> Revisi
-                        </button>
+                @forelse($proposals as $index => $proposal)
+                    @php
+                        $judul = $proposal->judul ?? '-';
+                        $pengusul = $proposal->user->name ?? '-';
 
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
+                        // tampilkan 2 reviewer dari pivot
+                        $reviewer = optional($proposal->reviewers ?? collect())->pluck('name')->implode(', ') ?: '-';
 
-                <tr>
-                    <td>2</td>
-                    <td>Pemanfaatan AI untuk Deteksi Penyakit Kulit</td>
-                    <td>Dr. Ratna Sitompul</td>
-                    <td>Prof. Hartono</td>
-                    <td><span class="badge bg-success">Selesai</span></td>
-                    <td>
-                        <button class="btn btn-warning btn-action me-1">
-                            <i class="bi bi-pencil-square"></i> Revisi
-                        </button>
+                        // status review (kalau sudah lewat review selesai, kita tampilkan "Selesai")
+                        $statusReview = 'Selesai';
 
-                        <button class="btn btn-primary btn-action">
-                            <i class="bi bi-download"></i> Download
-                        </button>
-                    </td>
-                </tr>
+                        // status proposal asli (Ditolak / Direvisi)
+                        $statusProposal = $proposal->status ?? '-';
+                    @endphp
 
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $judul }}</td>
+                        <td>{{ $pengusul }}</td>
+                        <td>{{ $reviewer }}</td>
+
+                        <td>
+                            <span class="badge bg-success">{{ $statusReview }}</span>
+
+                            @if($statusProposal === 'Ditolak')
+                                <span class="badge bg-danger ms-1">Ditolak</span>
+                            @elseif($statusProposal === 'Direvisi')
+                                <span class="badge bg-warning text-dark ms-1">Direvisi</span>
+                            @endif
+                        </td>
+
+                        <td class="d-flex gap-2 flex-wrap">
+
+                            {{-- Tombol Revisi (edit) --}}
+                            <a href="{{ route('proposal.edit', $proposal->id) }}"
+                               class="btn btn-warning btn-action">
+                                <i class="bi bi-pencil-square"></i> Revisi
+                            </a>
+
+                            {{-- Download Proposal --}}
+                            <a href="{{ route('proposal.download', $proposal->id) }}"
+                               class="btn btn-primary btn-action">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-3">
+                            Belum ada proposal yang Direvisi.
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>

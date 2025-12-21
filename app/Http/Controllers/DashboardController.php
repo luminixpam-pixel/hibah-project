@@ -34,6 +34,13 @@ class DashboardController extends Controller
         $direvisiCount          = (clone $baseQuery)->where('status', 'Direvisi')->count();
         $hasilRevisiCount       = (clone $baseQuery)->where('status', 'Hasil Revisi')->count();
 
+        // ✅ TAMBAHAN: jumlah FILE untuk PROPOSAL DIREVISI
+        // Samakan dengan halaman proposalDirevisi() => status Ditolak + Direvisi
+        $direvisiFileCount = (clone $baseQuery)
+            ->whereIn('status', ['Ditolak', 'Direvisi'])
+            ->whereNotNull('file_path')
+            ->count();
+
         // kirim data ke view dashboard
         return view('dashboard', [
             'user'                 => $user,
@@ -45,6 +52,9 @@ class DashboardController extends Controller
             'ditolakCount'         => $ditolakCount,
             'direvisiCount'        => $direvisiCount,
             'hasilRevisiCount'     => $hasilRevisiCount,
+
+            // ✅ variabel baru
+            'direvisiFileCount'    => $direvisiFileCount,
         ]);
     }
 
@@ -74,13 +84,14 @@ class DashboardController extends Controller
 
         return redirect()->back()->with('success', 'Profil berhasil diperbarui!');
     }
+
     public function dashboard()
-{
-    $notifications = Notification::where('user_id', auth()->id())
+    {
+        $notifications = Notification::where('user_id', auth()->id())
                         ->orderBy('created_at', 'desc')
                         ->take(5)
                         ->get();
 
-    return view('dashboard', compact('notifications'));
-}
+        return view('dashboard', compact('notifications'));
+    }
 }

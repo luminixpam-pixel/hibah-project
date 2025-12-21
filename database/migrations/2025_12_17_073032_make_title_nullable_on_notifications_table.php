@@ -7,17 +7,16 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up()
-{
-    Schema::table('notifications', function (Blueprint $table) {
-        $table->string('title')->nullable()->change();
-    });
-}
+    {
+        Schema::table('notifications', function (Blueprint $table) {
+            $table->string('title')->default('Notifikasi Sistem')->change();
+        });
+    }
 
-public function down()
-{
-    Schema::table('notifications', function (Blueprint $table) {
-        $table->string('title')->nullable(false)->change();
-    });
-}
-
+    public function down()
+    {
+        Schema::table('notifications', function (Blueprint $table) {
+            $table->string('title')->nullable()->change();
+        });
+    }
 };

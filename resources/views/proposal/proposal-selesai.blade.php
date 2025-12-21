@@ -35,7 +35,7 @@
     {{-- TITLE --}}
     <h4 class="page-title mb-1"> Daftar Review Selesai — Universitas YARSI</h4>
     <p class="page-subtitle mb-4">
-        Berikut daftar seluruh review yang sudah disimpan.
+        Berikut daftar seluruh proposal yang review-nya sudah lengkap (2 reviewer submit).
     </p>
 
     {{-- 🔍 SEARCH --}}
@@ -57,116 +57,117 @@
                     <th>Pengusul</th>
                     <th>Reviewer</th>
                     <th>Status Proposal</th>
-                    <th>Total Skor</th>
-                    <th>Status Review</th>
-                    <th>Catatan</th>
-                    <th>Tanggal Review</th>
+                    <th>Skor Reviewer</th>
+                    <th>Jumlah Review Masuk</th>
+                    <th>Tanggal Review Terakhir</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
 
-           <tbody>
-@forelse($reviews as $index => $review)
-    @php
-        $proposal   = $review->proposal;
-        $pengusul   = $proposal->user->name ?? '-';
-        $judul      = $proposal->judul ?? '-';
-        $statusProp = $proposal->status ?? '-';
-        $statusRev  = $review->status ?? '-';
+            <tbody>
+            @forelse($proposals as $index => $proposal)
+                @php
+                    $pengusul   = $proposal->user->name ?? '-';
+                    $judul      = $proposal->judul ?? '-';
+                    $statusProp = $proposal->status ?? '-';
 
-        $reviewer = $review->reviewer->name
-                    ?? optional($proposal->reviewers ?? collect())->pluck('name')->implode(', ')
-                    ?? '-';
+                    // tampilkan 2 reviewer dari pivot
+                    $reviewerNames = optional($proposal->reviewers ?? collect())->pluck('name')->implode(', ') ?: '-';
 
-        $templatePdf = $review->template_pdf
-                        ?? $proposal->template_pdf
-                        ?? null;
-    @endphp
+                    // semua review yang masuk untuk proposal ini
+                    $proposalReviews = $proposal->reviews ?? collect();
 
-    <tr>
-        <td>{{ $index + 1 }}</td>
+                    $reviewCount = $proposalReviews->unique('reviewer_id')->count();
 
-        {{-- Judul Proposal --}}
-        <td>{{ $judul }}</td>
+                    // tanggal review terakhir
+                    $lastReviewDate = optional($proposalReviews->sortByDesc('created_at')->first())->created_at;
+                @endphp
 
-        {{-- Pengusul --}}
-        <td>{{ $pengusul }}</td>
+                <tr>
+                    <td>{{ $index + 1 }}</td>
 
-        {{-- Reviewer --}}
-        <td>{{ $reviewer }}</td>
+                    <td>{{ $judul }}</td>
 
-        {{-- Status Proposal --}}
-        <td>
-            <span class="badge bg-info">
-                {{ $statusProp }}
-            </span>
-        </td>
+                    <td>{{ $pengusul }}</td>
 
-        {{-- Total Skor --}}
-        <td>{{ $review->total_score ?? '-' }}</td>
+                    <td>{{ $reviewerNames }}</td>
 
-        {{-- Status Review --}}
-        <td>
-            <span class="badge bg-secondary">
-                {{ $statusRev }}
-            </span>
-        </td>
+                    <td>
+                        <span class="badge bg-info">{{ $statusProp }}</span>
+                    </td>
 
-        {{-- Catatan --}}
-        <td style="max-width: 250px; white-space: pre-wrap;">
-            {{ $review->catatan ?? '-' }}
-        </td>
+                    {{-- ✅ Skor masing-masing reviewer (bukan rata-rata) --}}
+                    <td>
+                        @forelse($proposalReviews as $rev)
+                            <div class="small">
+                                <strong>{{ $rev->reviewer->name ?? 'Reviewer' }}:</strong>
+                                {{ $rev->total_score !== null ? number_format($rev->total_score, 2) : '-' }}
+                            </div>
+                        @empty
+                            <span class="text-muted">-</span>
+                        @endforelse
+                    </td>
 
-        {{-- Tanggal Review --}}
-        <td>
-            {{ $review->created_at?->format('d M Y') ?? '-' }}
-        </td>
+                    <td>
+                        <span class="badge bg-secondary">{{ $reviewCount }}</span>
+                        <span class="text-muted">/ {{ optional($proposal->reviewers)->count() ?? 0 }}</span>
+                    </td>
 
-        {{-- AKSI --}}
-        <td class="d-flex gap-1 flex-wrap">
+                    <td>
+                        {{ $lastReviewDate ? $lastReviewDate->format('d M Y') : '-' }}
+                    </td>
 
-            {{-- Download Proposal --}}
-            @if($proposal)
-               <a href="{{ route('review.pdf', $review->id) }}"
-                    class="btn btn-outline-primary btn-sm btn-action">
-                        Download PDF
-                    </a>
+                    <td class="d-flex gap-1 flex-wrap">
 
-            @endif
+                        {{-- Download hasil review per reviewer --}}
+                        @foreach($proposalReviews as $rev)
+                            <a href="{{ route('review.pdf', $rev->id) }}"
+                               class="btn btn-outline-primary btn-sm btn-action">
+                                PDF ({{ $rev->reviewer->name ?? 'Reviewer' }})
+                            </a>
+                        @endforeach
 
-            {{-- Download Template Penilaian (PDF) --}}
-            @if($templatePdf)
-                <a href="{{ asset('storage/template_penilaian/' . $templatePdf) }}"
-                   target="_blank"
-                   class="btn btn-outline-primary btn-sm btn-action">
-                    Template PDF
-                </a>
-            @endif
+                        {{-- ✅ ADMIN: tiap proposal selalu ada 2 tombol --}}
+                        @if($role === 'admin')
 
-            {{-- Approve Proposal --}}
-            @if($role === 'admin' && $statusProp !== 'Disetujui')
-                <form action="{{ route('proposal.approve', $proposal->id) }}"
-                      method="POST"
-                      onsubmit="return confirm('Yakin setujui proposal ini?')">
-                    @csrf
-                    @method('PUT')
+                            {{-- Terima Proposal --}}
+                            <form action="{{ route('proposal.approve', $proposal->id) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('Yakin setujui proposal ini?')">
+                                @csrf
+                                @method('PUT')
 
-                    <button type="submit"
-                            class="btn btn-success btn-sm btn-action">
-                        Approve
-                    </button>
-                </form>
-            @endif
-        </td>
-    </tr>
-@empty
-    <tr>
-        <td colspan="10" class="text-center text-muted py-3">
-            Belum ada review yang selesai.
-        </td>
-    </tr>
-@endforelse
-</tbody>
+                                <button type="submit"
+                                        class="btn btn-success btn-sm btn-action">
+                                    Terima Proposal
+                                </button>
+                            </form>
+
+                            {{-- Tolak Proposal --}}
+                            <form action="{{ route('proposal.reject', $proposal->id) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('Yakin tolak proposal ini?')">
+                                @csrf
+                                @method('PUT')
+
+                                <button type="submit"
+                                        class="btn btn-danger btn-sm btn-action">
+                                    Tolak Proposal
+                                </button>
+                            </form>
+
+                        @endif
+
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-3">
+                        Belum ada proposal yang review-nya selesai.
+                    </td>
+                </tr>
+            @endforelse
+            </tbody>
 
         </table>
     </div>
@@ -174,13 +175,11 @@
     {{-- 🔁 PREV / NEXT --}}
     <div class="d-flex justify-content-between mt-3">
         @if($role === 'pengaju')
-            {{-- Pengaju: balik ke Daftar Proposal --}}
             <a href="{{ route('monitoring.proposalDikirim') }}"
                class="btn btn-outline-success btn-sm">
                 &laquo; Daftar Proposal
             </a>
         @else
-            {{-- Admin / Reviewer: tetap ke Proposal Sedang Direview --}}
             <a href="{{ route('monitoring.proposalSedangDireview') }}"
                class="btn btn-outline-success btn-sm">
                 &laquo; Proposal Sedang Direview

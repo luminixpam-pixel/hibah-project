@@ -31,7 +31,13 @@ class Proposal extends Model
         return $this->hasMany(Review::class, 'proposal_id');
     }
 
+    // ✅ FIX ERROR: relasi ke pengaju (users)
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     protected $casts = [
         'review_deadline' => 'datetime',
     ];
-    }
+}
