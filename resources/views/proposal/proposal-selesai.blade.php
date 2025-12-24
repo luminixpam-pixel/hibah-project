@@ -19,14 +19,34 @@
     }
 
     .btn-action {
-        padding: 6px 14px;
+        padding: 4px 10px; /* 🔽 diperkecil */
         border-radius: 6px;
-        font-size: 14px;
+        font-size: 13px;   /* 🔽 diperkecil */
     }
 
     .page-subtitle {
         font-size: 15px;
         color: #6c757d;
+    }
+
+    /* ================= KOLOM WIDTH ================= */
+    .col-reviewer {
+        width: 260px;          /* 🔼 BESAR */
+    }
+
+    .col-jumlah-review {
+        width: 90px;           /* 🔽 KECIL */
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .col-aksi {
+        width: 120px;          /* 🔽 KECIL */
+        white-space: nowrap;
+    }
+
+    .aksi-wrap {
+        gap: 4px !important;
     }
 </style>
 
@@ -55,12 +75,12 @@
                     <th>No</th>
                     <th>Judul Proposal</th>
                     <th>Pengusul</th>
-                    <th>Reviewer</th>
+                    <th class="col-reviewer">Reviewer</th>
                     <th>Status Proposal</th>
                     <th>Skor Reviewer</th>
-                    <th>Jumlah Review Masuk</th>
-                    <th>Tanggal Review Terakhir</th>
-                    <th>Aksi</th>
+                    <th class="col-jumlah-review">Jumlah Review</th>
+                    <th>Tanggal Review</th>
+                    <th class="col-aksi">Aksi</th>
                 </tr>
             </thead>
 
@@ -71,32 +91,30 @@
                     $judul      = $proposal->judul ?? '-';
                     $statusProp = $proposal->status ?? '-';
 
-                    // tampilkan 2 reviewer dari pivot
-                    $reviewerNames = optional($proposal->reviewers ?? collect())->pluck('name')->implode(', ') ?: '-';
-
-                    // semua review yang masuk untuk proposal ini
                     $proposalReviews = $proposal->reviews ?? collect();
-
                     $reviewCount = $proposalReviews->unique('reviewer_id')->count();
-
-                    // tanggal review terakhir
                     $lastReviewDate = optional($proposalReviews->sortByDesc('created_at')->first())->created_at;
                 @endphp
 
                 <tr>
                     <td>{{ $index + 1 }}</td>
-
                     <td>{{ $judul }}</td>
-
                     <td>{{ $pengusul }}</td>
 
-                    <td>{{ $reviewerNames }}</td>
+                    {{-- REVIEWER (besar) --}}
+                    <td class="col-reviewer">
+                        @forelse($proposalReviews as $rev)
+                            <div class="small">• {{ $rev->reviewer->name ?? 'Reviewer' }}</div>
+                        @empty
+                            <span class="text-muted">-</span>
+                        @endforelse
+                    </td>
 
                     <td>
                         <span class="badge bg-info">{{ $statusProp }}</span>
                     </td>
 
-                    {{-- ✅ Skor masing-masing reviewer (bukan rata-rata) --}}
+                    {{-- SKOR --}}
                     <td>
                         @forelse($proposalReviews as $rev)
                             <div class="small">
@@ -108,56 +126,44 @@
                         @endforelse
                     </td>
 
-                    <td>
+                    {{-- JUMLAH REVIEW (kecil) --}}
+                    <td class="col-jumlah-review">
                         <span class="badge bg-secondary">{{ $reviewCount }}</span>
-                        <span class="text-muted">/ {{ optional($proposal->reviewers)->count() ?? 0 }}</span>
+                        <span class="text-muted">/2</span>
                     </td>
 
                     <td>
                         {{ $lastReviewDate ? $lastReviewDate->format('d M Y') : '-' }}
                     </td>
 
-                    <td class="d-flex gap-1 flex-wrap">
+                    {{-- AKSI (kecil & rapi) --}}
+                    <td class="col-aksi">
+                        <div class="d-flex flex-column aksi-wrap">
+                            @foreach($proposalReviews as $rev)
+                                <a href="{{ route('review.pdf', $rev->id) }}"
+                                   class="btn btn-outline-primary btn-sm btn-action">
+                                    Hasil Review
+                                </a>
+                            @endforeach
 
-                        {{-- Download hasil review per reviewer --}}
-                        @foreach($proposalReviews as $rev)
-                            <a href="{{ route('review.pdf', $rev->id) }}"
-                               class="btn btn-outline-primary btn-sm btn-action">
-                                PDF ({{ $rev->reviewer->name ?? 'Reviewer' }})
-                            </a>
-                        @endforeach
+                            @if($role === 'admin')
+                                <form action="{{ route('proposal.approve', $proposal->id) }}" method="POST">
+                                    @csrf
+                                    @method('PUT')
+                                    <button class="btn btn-success btn-sm btn-action w-100">
+                                        Terima
+                                    </button>
+                                </form>
 
-                        {{-- ✅ ADMIN: tiap proposal selalu ada 2 tombol --}}
-                        @if($role === 'admin')
-
-                            {{-- Terima Proposal --}}
-                            <form action="{{ route('proposal.approve', $proposal->id) }}"
-                                  method="POST"
-                                  onsubmit="return confirm('Yakin setujui proposal ini?')">
-                                @csrf
-                                @method('PUT')
-
-                                <button type="submit"
-                                        class="btn btn-success btn-sm btn-action">
-                                    Terima Proposal
-                                </button>
-                            </form>
-
-                            {{-- Tolak Proposal --}}
-                            <form action="{{ route('proposal.reject', $proposal->id) }}"
-                                  method="POST"
-                                  onsubmit="return confirm('Yakin tolak proposal ini?')">
-                                @csrf
-                                @method('PUT')
-
-                                <button type="submit"
-                                        class="btn btn-danger btn-sm btn-action">
-                                    Tolak Proposal
-                                </button>
-                            </form>
-
-                        @endif
-
+                                <form action="{{ route('proposal.reject', $proposal->id) }}" method="POST">
+                                    @csrf
+                                    @method('PUT')
+                                    <button class="btn btn-danger btn-sm btn-action w-100">
+                                        Tolak
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
                     </td>
                 </tr>
             @empty
@@ -170,26 +176,6 @@
             </tbody>
 
         </table>
-    </div>
-
-    {{-- 🔁 PREV / NEXT --}}
-    <div class="d-flex justify-content-between mt-3">
-        @if($role === 'pengaju')
-            <a href="{{ route('monitoring.proposalDikirim') }}"
-               class="btn btn-outline-success btn-sm">
-                &laquo; Daftar Proposal
-            </a>
-        @else
-            <a href="{{ route('monitoring.proposalSedangDireview') }}"
-               class="btn btn-outline-success btn-sm">
-                &laquo; Proposal Sedang Direview
-            </a>
-        @endif
-
-        <a href="{{ route('monitoring.proposalDisetujui') }}"
-           class="btn btn-outline-success btn-sm">
-            Proposal Disetujui &raquo;
-        </a>
     </div>
 
 </div>

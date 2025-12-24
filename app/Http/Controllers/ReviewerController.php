@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Notification; // ⬅️ WAJIB INI
+use App\Helpers\NotificationHelper; // ✅ TAMBAH INI (buat notif bell)
 
 class ReviewerController extends Controller
 {
@@ -20,6 +21,18 @@ class ReviewerController extends Controller
     {
         $q = $request->q;
 
+        // ✅ ADMIN: boleh cari user siapa saja (kecuali admin), biar bisa dipilih jadi reviewer
+        if (Auth::check() && Auth::user()->role === 'admin') {
+            $users = User::where('role', '!=', 'admin')
+                ->where('name', 'like', "%$q%")
+                ->select('id', 'name', 'role')
+                ->limit(10)
+                ->get();
+
+            return response()->json($users);
+        }
+
+        // ✅ DEFAULT: hanya role reviewer
         $reviewers = User::where('role', 'reviewer')
             ->where('name', 'like', "%$q%")
             ->select('id', 'name')
@@ -29,8 +42,26 @@ class ReviewerController extends Controller
         return response()->json($reviewers);
     }
 
+    /**
+     * ✅ ADMIN: halaman list user untuk dijadikan reviewer
+     * ✅ REVIEWER: halaman list proposal yang ditugaskan
+     */
     public function index()
     {
+        // ✅ kalau admin buka /admin/reviewer → tampil list user
+        if (Auth::check() && Auth::user()->role === 'admin') {
+
+            // tampilkan semua user kecuali admin (biar admin gak bisa jadi reviewer)
+            $users = User::where('role', '!=', 'admin')
+                ->orderBy('name')
+                ->get();
+
+            // ✅ sesuai lokasi file lo:
+            // resources/views/reviewer/pilih-reviewer.blade.php
+            return view('reviewer.pilih-reviewer', compact('users'));
+        }
+
+        // ✅ kalau reviewer buka menu reviewer (tetap logic lama kamu)
         $proposals = Proposal::with('reviewers')
             ->whereHas('reviewers', function ($q) {
                 $q->where('users.id', Auth::id());
@@ -39,6 +70,78 @@ class ReviewerController extends Controller
             ->get();
 
         return view('proposal-perlu-direview', compact('proposals'));
+    }
+
+    /**
+     * ✅ ADMIN bisa jadikan user sebagai reviewer
+     * route: POST /admin/reviewer/{user}
+     */
+    public function setReviewer(User $user)
+    {
+        // 🔒 pastikan admin
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        // admin tidak boleh diubah
+        if ($user->role === 'admin') {
+            return back()->with('error', 'Admin tidak bisa dijadikan reviewer.');
+        }
+
+        // ✅ kalau sudah reviewer, stop aja
+        if ($user->role === 'reviewer') {
+            return back()->with('error', 'User ini sudah menjadi reviewer.');
+        }
+
+        // ✅ jadikan reviewer
+        $user->role = 'reviewer';
+        $user->save();
+
+        // ✅ NOTIF (bell) ke user yang diubah rolenya
+        NotificationHelper::send(
+            $user->id,
+            'Anda Ditugaskan Sebagai Reviewer',
+            'Role akun Anda telah diubah menjadi Reviewer oleh Admin. Anda tidak dapat mengunggah proposal selama berstatus Reviewer.',
+            'info'
+        );
+
+        return back()->with('success', 'User berhasil dijadikan reviewer.');
+    }
+
+    /**
+     * ✅ ADMIN bisa berhentikan reviewer (balikin role jadi pengaju)
+     * route: POST /admin/reviewer/{user}/remove
+     */
+    public function removeReviewer(User $user)
+    {
+        // 🔒 pastikan admin
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        // admin tidak boleh diubah
+        if ($user->role === 'admin') {
+            return back()->with('error', 'Admin tidak bisa diubah.');
+        }
+
+        // kalau bukan reviewer, ngapain
+        if ($user->role !== 'reviewer') {
+            return back()->with('error', 'User ini bukan reviewer.');
+        }
+
+        // ✅ balikin jadi pengaju
+        $user->role = 'pengaju';
+        $user->save();
+
+        // ✅ NOTIF (bell) ke user yang diubah rolenya
+        NotificationHelper::send(
+            $user->id,
+            'Status Reviewer Dihentikan',
+            'Role akun Anda telah dikembalikan menjadi Pengaju oleh Admin. Anda sekarang bisa mengunggah proposal.',
+            'success'
+        );
+
+        return back()->with('success', 'Reviewer berhasil dihentikan (role dikembalikan jadi pengaju).');
     }
 
     /* ===================== REVIEWER ===================== */
@@ -86,7 +189,7 @@ class ReviewerController extends Controller
             'nilai_6' => 'nullable|integer|min:0|max:5',
             'nilai_7' => 'nullable|integer|min:0|max:5',
             'catatan' => 'nullable|string',
-            'status'  => 'nullable|string', // status dari form (dipakai untuk finalStatus) -> sekarang tidak dipakai untuk menentukan status proposal
+            'status'  => 'nullable|string',
         ]);
 
         $totalScore = collect([
@@ -99,7 +202,7 @@ class ReviewerController extends Controller
             $request->nilai_7,
         ])->filter()->sum();
 
-        // ✅ LOCK: kalau reviewer ini sudah submit untuk proposal ini, stop (tidak boleh submit ulang)
+        // ✅ LOCK: kalau reviewer ini sudah submit untuk proposal ini, stop
         $alreadySubmitted = Review::where('proposal_id', $proposal->id)
             ->where('reviewer_id', Auth::id())
             ->exists();
@@ -108,11 +211,6 @@ class ReviewerController extends Controller
             return redirect()->back()->with('error', 'Anda sudah submit review untuk proposal ini. Review tidak bisa diubah lagi.');
         }
 
-        // ✅ simpan review per reviewer (kalau sudah ada → update)
-        // NOTE: kolom `status` di tabel reviews kamu BELUM ADA (error SQLSTATE[42S22]),
-        // jadi JANGAN simpan status ke tabel reviews dulu.
-        // Kalau nanti kamu sudah bikin migration add_status_to_reviews_table,
-        // baru boleh tambahkan: 'status' => $request->status,
         Review::updateOrCreate(
             [
                 'proposal_id' => $proposal->id,
@@ -136,19 +234,13 @@ class ReviewerController extends Controller
         // ===========================
         $jumlahReviewerDitugaskan = $proposal->reviewers->count();
 
-        // hitung jumlah review unik (per reviewer) untuk proposal ini
         $jumlahReviewMasuk = Review::where('proposal_id', $proposal->id)
             ->distinct('reviewer_id')
             ->count('reviewer_id');
 
-        // ✅ KUNCI: Reviewer TIDAK BOLEH menentukan Disetujui/Ditolak/Direvisi
-        // Proposal hanya masuk ke "Review Selesai" kalau semua reviewer sudah submit.
         if ($jumlahReviewerDitugaskan > 0 && $jumlahReviewMasuk >= $jumlahReviewerDitugaskan) {
-
             $proposal->update(['status' => 'Review Selesai']);
-
         } else {
-            // masih menunggu reviewer lainnya
             $proposal->update(['status' => 'Sedang Direview']);
         }
 

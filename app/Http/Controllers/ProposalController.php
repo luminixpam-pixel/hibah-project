@@ -347,14 +347,16 @@ class ProposalController extends Controller
             abort(403, 'Hanya admin yang boleh menolak proposal.');
         }
 
+        // status tetap Ditolak (masuk ke menu Proposal Direvisi karena query-nya Ditolak + Direvisi)
         $proposal->status = 'Ditolak';
         $proposal->save();
 
+        // ✅ 1 NOTIF SAJA: Langsung bilang masuk Proposal Direvisi (judul notif = Proposal Direvisi)
         NotificationHelper::send(
             $proposal->user_id,
-            'Proposal Ditolak',
-            'Proposal "' . $proposal->judul . '" telah ditolak oleh admin.',
-            'error'
+            'Proposal Direvisi',
+            'Proposal "' . $proposal->judul . '" ditolak dan masuk ke menu Proposal Direvisi. Silakan revisi dan upload file terbaru.',
+            'warning'
         );
 
         return back()->with('success', 'Proposal berhasil ditolak.');
@@ -367,8 +369,8 @@ class ProposalController extends Controller
 
         NotificationHelper::send(
             $proposal->user_id,
-            'Proposal Anda perlu direvisi',
-            'Silakan periksa catatan review dan revisi proposal Anda',
+            'Proposal Direvisi',
+            'Proposal "' . $proposal->judul . '" perlu direvisi. Silakan periksa catatan review dan upload revisi terbaru.',
             'warning'
         );
 

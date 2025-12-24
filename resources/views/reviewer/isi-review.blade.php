@@ -14,7 +14,7 @@
     {{-- TENGGAT WAKTU REVIEW --}}
     @if($proposal->review_deadline)
         <p class="text-danger fw-bold">
-            🕒 Tenggat Waktu Review: {{ \Carbon\Carbon::parse($proposal->review_deadline)->format('d M Y H:i') }}
+            Tenggat Waktu: {{ \Carbon\Carbon::parse($proposal->review_deadline)->format('d M Y H:i') }}
         </p>
     @endif
 
@@ -87,9 +87,9 @@
         <div class="mt-3">
             <label for="status" class="form-label fw-bold">Keputusan Review:</label>
             <select name="status" id="status" class="form-select" required>
-                <option value="">-- Pilih Keputusan --</option>
-                <option value="disetujui">✅ Disetujui</option>
-                <option value="ditolak">❌ Ditolak</option>
+                <option value="">Pilih Keputusan</option>
+                <option value="disetujui">Disetujui</option>
+                <option value="ditolak">Ditolak</option>
             </select>
         </div>
 

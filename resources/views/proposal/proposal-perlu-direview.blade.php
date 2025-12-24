@@ -147,7 +147,7 @@
 
                                 {{-- Tenggat Review --}}
                                 <div class="deadline-group">
-                                    <label class="form-label small text-muted">Tenggat Review</label>
+                                    <label class="form-label small text-muted">Tenggat Waktu Review</label>
                                     <input type="datetime-local"
                                         name="review_deadline"
                                         class="form-control form-control-sm"
@@ -188,9 +188,9 @@
                                 <div class="text-muted small">{{ $deadline->format('H:i') }} WIB</div>
 
                                 @if(now()->gt($deadline))
-                                    <div class="deadline-badge danger">⛔ Lewat Tenggat</div>
+                                    <div class="deadline-badge danger">Lewat Tenggat</div>
                                 @elseif(now()->diffInHours($deadline) <= 24)
-                                    <div class="deadline-badge warning">⚠️ Kurang dari 24 jam</div>
+                                    <div class="deadline-badge warning">Kurang dari 24 jam</div>
                                 @endif
                             </div>
                         @else

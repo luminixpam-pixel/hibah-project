@@ -88,6 +88,23 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         [ProposalController::class, 'rejectProposal']
     )->name('proposal.reject');
 
+    // ✅ HALAMAN PILIH REVIEWER (ADMIN)
+    Route::get('/admin/reviewer', [ReviewerController::class, 'index'])
+        ->name('admin.reviewer.index');
+
+    // ✅ JADIKAN REVIEWER (ADMIN)
+    Route::post('/admin/reviewer/{user}', [ReviewerController::class, 'setReviewer'])
+        ->name('admin.reviewer.set');
+
+    // ✅ HENTIKAN REVIEWER (ADMIN) -> route name: reviewer.remove
+    Route::post('/admin/reviewer/{user}/remove', [ReviewerController::class, 'removeReviewer'])
+        ->name('reviewer.remove');
+
+    // ✅ SEARCH USER (untuk dipilih jadi reviewer, via AJAX)
+    Route::get('/admin/search-reviewer', [ReviewerController::class, 'searchReviewer'])
+        ->middleware('auth')
+        ->name('admin.searchReviewer');
+
     // reviewer search / assign (punya kamu)
     Route::get('/search-reviewer',
         [ProposalReviewerController::class, 'search'])
@@ -97,18 +114,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         [ProposalReviewerController::class, 'assign'])
         ->name('proposal.assignReviewer');
 
-    Route::get('/admin/reviewer', [ReviewerController::class, 'index'])
-        ->name('admin.reviewer.index');
-
-    Route::post('/admin/reviewer/{user}', [ReviewerController::class, 'setReviewer'])
-        ->name('admin.reviewer.set');
-
-    Route::get('/admin/search-reviewer', [ReviewerController::class, 'searchReviewer'])
-        ->middleware('auth')
-        ->name('admin.searchReviewer');
-
-    Route::post('/proposal/{proposal}/assign-reviewer', [ProposalController::class, 'assignReviewer'])
-        ->name('proposal.assignReviewer');
+    // ⛔ HAPUS DUPLIKAT:
+    // Route::post('/proposal/{proposal}/assign-reviewer', [ProposalController::class, 'assignReviewer'])
+    //     ->name('proposal.assignReviewer');
 });
 
 /*
