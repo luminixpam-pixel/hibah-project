@@ -18,6 +18,9 @@ class Proposal extends Model
         'user_id',
         'pengusul',
         'review_deadline',
+        // ✅ TAMBAHKAN KOLOM BERIKUT:
+        'file_laporan',
+        'keterangan',
     ];
 
     public function reviewers()
