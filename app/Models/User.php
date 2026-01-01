@@ -57,5 +57,10 @@ class User extends Authenticatable
 {
     return $this->belongsToMany(Proposal::class, 'proposal_reviewers', 'reviewer_id', 'proposal_id');
 }
+public function proposals()
+{
+    // Pastikan 'user_id' adalah nama kolom di tabel proposals yang merujuk ke id user
+    return $this->hasMany(\App\Models\Proposal::class, 'user_id');
+}
 
 }

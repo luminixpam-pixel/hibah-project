@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Proposal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth; // Tambahkan ini untuk Auth
+use Illuminate\Support\Facades\Auth;
 
 class LaporanKemajuanController extends Controller
 {
@@ -13,9 +13,8 @@ class LaporanKemajuanController extends Controller
     {
         $search = $request->input('search');
 
-        // Mengambil data proposal dengan pagination dan pencarian
-        // Ditambahkan pengurutan terbaru agar data yang baru diupdate muncul di atas
-        $proposals = Proposal::with(['user', 'reviewer'])
+        // PERBAIKAN: Ubah 'reviewer' menjadi 'reviewers' (sesuai nama relasi di Model Proposal)
+        $proposals = Proposal::with(['user', 'reviewers'])
             ->when($search, function ($query, $search) {
                 return $query->where('judul', 'like', "%{$search}%")
                              ->orWhereHas('user', function($q) use ($search) {
@@ -29,36 +28,36 @@ class LaporanKemajuanController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'file' => 'required|mimes:pdf,doc,docx|max:2048',
-        'keterangan' => 'nullable|string',
-    ]);
+    {
+        $request->validate([
+            'file' => 'required|mimes:pdf,doc,docx|max:10240', // Ukuran ditingkatkan ke 10MB agar aman
+            'keterangan' => 'nullable|string',
+        ]);
 
-    if ($request->hasFile('file')) {
-        // Cari proposal milik user login
-        $proposal = Proposal::where('user_id', Auth::id())->first();
+        if ($request->hasFile('file')) {
+            // Cari proposal milik user yang sedang login
+            $proposal = Proposal::where('user_id', Auth::id())->first();
 
-        // JIKA PROPOSAL DITEMUKAN, UPDATE DATABASE
-        if ($proposal) {
-            if ($proposal->file_laporan) {
-                Storage::disk('public')->delete($proposal->file_laporan);
+            if ($proposal) {
+                // Hapus file lama jika ada
+                if ($proposal->file_laporan && Storage::disk('public')->exists($proposal->file_laporan)) {
+                    Storage::disk('public')->delete($proposal->file_laporan);
+                }
+
+                $path = $request->file('file')->store('laporan_kemajuan', 'public');
+
+                $proposal->update([
+                    'file_laporan' => $path,
+                    'keterangan' => $request->keterangan,
+                    // Status tetap biarkan sesuai alur pendanaan atau ganti jika perlu
+                ]);
+
+                return redirect()->back()->with('success', 'Laporan berhasil diunggah!');
             }
-            $path = $request->file('file')->store('laporan', 'public');
-            $proposal->update([
-                'file_laporan' => $path,
-                'keterangan' => $request->keterangan,
-                'status' => 'Selesai'
-            ]);
-            return redirect()->back()->with('success', 'Laporan berhasil diunggah dan data diperbarui!');
+
+            return redirect()->back()->with('error', 'Data proposal Anda tidak ditemukan di sistem.');
         }
 
-        // JIKA TIDAK ADA DATA PROPOSAL (UNTUK TEST SAJA)
-        // Kita hanya simpan filenya saja tanpa update database agar tidak error merah
-        $request->file('file')->store('laporan', 'public');
-        return redirect()->back()->with('success', 'File berhasil terupload ke server (Data proposal database belum ada).');
+        return redirect()->back()->withErrors(['file' => 'Gagal mengunggah file.']);
     }
-
-    return redirect()->back()->withErrors(['file' => 'Gagal mengunggah file.']);
-}
 }

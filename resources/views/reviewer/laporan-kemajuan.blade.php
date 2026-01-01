@@ -5,15 +5,7 @@
 @section('content')
 {{-- Area abu-abu lebar dengan container-fluid --}}
 <div class="container-fluid py-4 px-md-5">
-
-    {{-- Breadcrumb & Title --}}
-    <nav aria-label="breadcrumb" class="mb-2">
-        <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}" class="text-decoration-none text-success">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Laporan Kemajuan</li>
-        </ol>
-    </nav>
-    <h4 class="mb-4 fw-bold text-secondary">Unggah Laporan Kemajuan Final</h4>
+    <h4 class="mb-4 fw-bold text-secondary">Unggah Laporan Kemajuan</h4>
 
     {{-- ALERT SUCCESS/ERROR --}}
     @if (session('success'))

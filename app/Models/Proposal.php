@@ -18,9 +18,10 @@ class Proposal extends Model
         'user_id',
         'pengusul',
         'review_deadline',
-        // ✅ TAMBAHKAN KOLOM BERIKUT:
         'file_laporan',
         'keterangan',
+        'status_pendanaan',
+
     ];
 
     public function reviewers()
@@ -43,4 +44,6 @@ class Proposal extends Model
     protected $casts = [
         'review_deadline' => 'datetime',
     ];
+
+
 }
