@@ -29,13 +29,13 @@ class Proposal extends Model
         return $this->belongsToMany(User::class, 'proposal_reviewers', 'proposal_id', 'reviewer_id');
     }
 
-    // ✅ tambahan: relasi ke tabel reviews
+    //relasi ke tabel reviews
     public function reviews()
     {
         return $this->hasMany(Review::class, 'proposal_id');
     }
 
-    // ✅ FIX ERROR: relasi ke pengaju (users)
+    //relasi ke pengaju (users)
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');

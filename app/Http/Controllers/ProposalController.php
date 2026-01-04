@@ -57,6 +57,11 @@ class ProposalController extends Controller
             'file'       => 'required|file|mimes:pdf,doc,docx|max:102400',
         ]);
 
+        // ✅ FIX: anggota[] dari form adalah array, simpan sebagai JSON string agar aman di kolom TEXT/VARCHAR
+        $anggota = $request->input('anggota', []);
+        $anggota = is_array($anggota) ? array_values(array_filter($anggota, fn($v) => trim((string)$v) !== '')) : [];
+        $anggotaJson = !empty($anggota) ? json_encode($anggota, JSON_UNESCAPED_UNICODE) : null;
+
         try {
             $extension = $request->file('file')->getClientOriginalExtension();
             $cleanName = preg_replace('/[^A-Za-z0-9\-]/', '', $request->judul);
@@ -68,7 +73,7 @@ class ProposalController extends Controller
                 'judul'           => $request->judul,
                 'nama_ketua'      => $request->nama_ketua,
                 'file_path'       => $filePath,
-                'anggota'         => $request->anggota,
+                'anggota'         => $anggotaJson, // ✅ FIX
                 'biaya'           => $request->biaya,
                 'status'          => 'Dikirim',
                 'user_id'         => auth()->id(),
@@ -114,14 +119,20 @@ class ProposalController extends Controller
             'nama_ketua' => 'required|string|max:255',
             'biaya'      => 'nullable|numeric',
             'file'       => 'nullable|file|mimes:pdf,doc,docx|max:102400',
+            'anggota'    => 'nullable|array', // ✅ (biar konsisten & aman)
         ]);
+
+        // ✅ FIX: anggota[] simpan sebagai JSON string
+        $anggota = $request->input('anggota', []);
+        $anggota = is_array($anggota) ? array_values(array_filter($anggota, fn($v) => trim((string)$v) !== '')) : [];
+        $anggotaJson = !empty($anggota) ? json_encode($anggota, JSON_UNESCAPED_UNICODE) : null;
 
         $oldStatus = $proposal->status;
 
         $proposal->judul = $request->judul;
         $proposal->nama_ketua = $request->nama_ketua;
         $proposal->biaya = $request->biaya;
-        $proposal->anggota = $request->anggota;
+        $proposal->anggota = $anggotaJson; // ✅ FIX
 
         if ($request->hasFile('file')) {
             if ($proposal->file_path && Storage::disk('public')->exists($proposal->file_path)) {

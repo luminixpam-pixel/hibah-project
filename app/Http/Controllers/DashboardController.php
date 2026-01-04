@@ -29,6 +29,16 @@ class DashboardController extends Controller
             $baseQuery->where('user_id', $user->id);
         }
 
+        // ✅ TAMBAHAN: Jika user adalah reviewer, hanya melihat proposal yang ditugaskan ke dia
+        if ($role === 'reviewer') {
+            $proposalIds = DB::table('proposal_reviewers')
+                ->where('reviewer_id', $user->id) // <-- kalau kolomnya 'user_id', ganti jadi ->where('user_id', $user->id)
+                ->pluck('proposal_id');
+
+            // Jika belum ada tugas, paksa hasil kosong (biar tidak error dan tidak tampil semua proposal)
+            $baseQuery->whereIn('id', $proposalIds->isEmpty() ? [0] : $proposalIds->toArray());
+        }
+
         // ================= STATISTIK COUNTER (Sesuai Route monitoring.*) =================
 
         // 1. Daftar Proposal / Dikirim (route: monitoring.proposalDikirim)

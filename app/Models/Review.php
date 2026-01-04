@@ -31,7 +31,6 @@ class Review extends Model
         return $this->belongsTo(Proposal::class);
     }
 
-    // ✅ tambahan supaya bisa ambil data reviewer (nama, dll)
     public function reviewer()
     {
         return $this->belongsTo(User::class, 'reviewer_id');

@@ -17,7 +17,6 @@ class ProposalReviewer extends Model
     return $this->belongsToMany(User::class, 'proposal_reviewers', 'proposal_id', 'reviewer_id');
 }
 
-
     public function proposal()
     {
         return $this->belongsTo(Proposal::class);

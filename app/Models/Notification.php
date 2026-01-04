@@ -9,41 +9,30 @@ class Notification extends Model
 {
     use HasFactory;
 
-    // Bisa diisi semua kolom penting
     protected $fillable = [
         'user_id',
-        'proposal_id', // ✅ opsional (kalau kolomnya kamu tambahin)
+        'proposal_id', 
         'title',
-        'type',     // info, success, warning, dsb
-        'message',  // optional, detail notifikasi
+        'type',
+        'message',
         'is_read'
     ];
 
-    // ✅ biar is_read pasti kebaca boolean di JSON (true/false)
     protected $casts = [
         'is_read' => 'boolean',
         'proposal_id' => 'integer',
     ];
 
-    /**
-     * Relasi ke user
-     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Scope untuk notifikasi yang belum dibaca
-     */
     public function scopeUnread($query)
     {
         return $query->where('is_read', false);
     }
 
-    /**
-     * Tandai notifikasi sebagai sudah dibaca
-     */
     public function markAsRead()
     {
         $this->is_read = true;

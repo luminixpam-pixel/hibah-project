@@ -44,7 +44,7 @@
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>
                         <div class="fw-bold">{{ $proposal->judul }}</div>
-                        <small class="text-muted">ID: #{{ $proposal->id }}</small>
+                        {{-- ID dihapus sesuai permintaan --}}
                     </td>
                     <td class="text-center">{{ $proposal->nama_ketua }}</td>
 

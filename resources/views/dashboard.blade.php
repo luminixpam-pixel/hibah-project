@@ -102,6 +102,61 @@
         </div>
     @endif
 
+    {{-- ===================== DASHBOARD PROGRESS (Khusus Reviewer) ==================== --}}
+    @if($role === 'reviewer')
+        @php
+            $direvisiDisplay = $direvisiFileCount ?? ($direvisiCount ?? 0);
+            $currentStep = 0;
+
+            // Ini dihitung dari proposal yang ditugaskan ke reviewer (sudah di-scope di controller)
+            if (($disetujuiCount ?? 0) > 0 || ($direvisiDisplay ?? 0) > 0 || ($hasilRevisiCount ?? 0) > 0 || ($ditolakCount ?? 0) > 0) {
+                $currentStep = 4;
+            } elseif (($reviewSelesaiCount ?? 0) > 0) {
+                $currentStep = 3;
+            } elseif (($perluDireviewCount ?? 0) > 0 || ($sedangDireviewCount ?? 0) > 0) {
+                $currentStep = 2;
+            } elseif (($daftarProposalCount ?? 0) > 0) {
+                $currentStep = 1;
+            }
+
+            $progressLabel = 'Belum ada proposal yang ditugaskan ke Anda.';
+            if ($currentStep === 1) $progressLabel = 'Ada proposal masuk (dikirim).';
+            if ($currentStep === 2) $progressLabel = 'Ada proposal yang sedang/menunggu review Anda.';
+            if ($currentStep === 3) $progressLabel = 'Ada review selesai, menunggu keputusan.';
+            if ($currentStep === 4) $progressLabel = 'Ada proposal yang sudah masuk tahap akhir (disetujui/ditolak/revisi).';
+        @endphp
+
+        <div class="card p-4 mb-4 shadow-sm border-0">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h6 class="mb-1 fw-bold text-dark">Status Progress Pengajuan (Reviewer)</h6>
+                    <div class="text-muted small">{{ $progressLabel }}</div>
+                </div>
+                <div class="badge rounded-pill bg-primary px-3">Step {{ $currentStep }}/4</div>
+            </div>
+
+            <div class="stepper mt-4">
+                @php $steps = [1 => 'Masuk', 2 => 'Direview', 3 => 'Menunggu Keputusan', 4 => 'Selesai']; @endphp
+                @foreach($steps as $stepNum => $stepText)
+                    @php
+                        $isDone = ($stepNum === 4) ? ($currentStep >= 4) : ($currentStep > $stepNum);
+                        $isActive = $currentStep === $stepNum;
+                        $dotClass = $isDone ? 'done' : ($isActive ? 'active' : 'todo');
+                    @endphp
+                    <div class="step">
+                        <div class="dot {{ $dotClass }}">
+                            @if($isDone) <i class="bi bi-check-lg"></i> @else {{ $stepNum }} @endif
+                        </div>
+                        <div class="label">{{ $stepText }}</div>
+                    </div>
+                    @if($stepNum < 4)
+                        <div class="line {{ $currentStep > $stepNum ? 'filled' : '' }}"></div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    @endif
+
    {{-- ===================== COUNTER CARDS ==================== --}}
 @php
     $dashboardItems = [
