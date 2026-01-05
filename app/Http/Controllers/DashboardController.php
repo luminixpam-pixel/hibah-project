@@ -12,93 +12,66 @@ use App\Models\DokumenResmi;
 
 class DashboardController extends Controller
 {
+    /**
+     * Menampilkan Dashboard Utama berdasarkan Role
+     */
     public function index(Request $request)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $role = $user->role ?? null;
-
-        // Filter Tahun (Default: Tahun Sekarang)
         $tahun = $request->get('tahun', date('Y'));
 
-        // ================= PROPOSAL (BASE QUERY) =================
-        $baseQuery = Proposal::query();
+        // ================= BASE QUERY BERDASARKAN ROLE =================
+        $baseQuery = Proposal::whereYear('created_at', $tahun);
 
-        // Jika user adalah pengaju, hanya bisa melihat data miliknya sendiri
         if ($role === 'pengaju') {
             $baseQuery->where('user_id', $user->id);
-        }
-
-        // ✅ TAMBAHAN: Jika user adalah reviewer, hanya melihat proposal yang ditugaskan ke dia
-        if ($role === 'reviewer') {
-            $proposalIds = DB::table('proposal_reviewers')
-                ->where('reviewer_id', $user->id) // <-- kalau kolomnya 'user_id', ganti jadi ->where('user_id', $user->id)
+        } elseif ($role === 'reviewer') {
+            // Untuk Statistik Card Reviewer: Hitung proposal yang ditugaskan ke dia
+            $assignedIds = DB::table('proposal_reviewers')
+                ->where('reviewer_id', $user->id)
                 ->pluck('proposal_id');
-
-            // Jika belum ada tugas, paksa hasil kosong (biar tidak error dan tidak tampil semua proposal)
-            $baseQuery->whereIn('id', $proposalIds->isEmpty() ? [0] : $proposalIds->toArray());
+            $baseQuery->whereIn('id', $assignedIds->isEmpty() ? [0] : $assignedIds);
         }
 
-        // ================= STATISTIK COUNTER (Sesuai Route monitoring.*) =================
+        // ================= HITUNG STATISTIK (Untuk Card) =================
+        $stats = [
+            'daftarProposalCount'  => (clone $baseQuery)->where('status', 'Dikirim')->count(),
+            'perluDireviewCount'   => (clone $baseQuery)->where('status', 'Perlu Direview')->count(),
+            'sedangDireviewCount'  => (clone $baseQuery)->where('status', 'Sedang Direview')->count(),
+            'reviewSelesaiCount'   => (clone $baseQuery)->whereIn('status', ['Review Selesai', 'Hasil Revisi', 'Disetujui'])->count(),
+            'disetujuiCount'       => (clone $baseQuery)->where('status_pendanaan', 'Disetujui')->count(),
+            'ditolakCount'         => (clone $baseQuery)->where('status_pendanaan', 'Ditolak')->count(),
+            'direvisiCount'        => (clone $baseQuery)->where('status_pendanaan', 'Direvisi')->count(),
+            'hasilRevisiCount'     => (clone $baseQuery)->where('status', 'Hasil Revisi')->count(),
+        ];
 
-        // 1. Daftar Proposal / Dikirim (route: monitoring.proposalDikirim)
-        $daftarProposalCount  = (clone $baseQuery)->whereYear('created_at', $tahun)->where('status', 'Dikirim')->count();
-
-        // 2. Perlu Direview (route: monitoring.proposalPerluDireview)
-        $perluDireviewCount   = (clone $baseQuery)->whereYear('created_at', $tahun)->where('status', 'Perlu Direview')->count();
-
-        // 3. Sedang Direview (route: monitoring.proposalSedangDireview)
-        $sedangDireviewCount  = (clone $baseQuery)->whereYear('created_at', $tahun)->where('status', 'Sedang Direview')->count();
-
-        // 4. Disetujui (route: monitoring.proposalDisetujui)
-        $disetujuiCount       = (clone $baseQuery)->whereYear('created_at', $tahun)->where('status', 'Disetujui')->count();
-
-        // 5. Ditolak (route: monitoring.proposalDitolak)
-        $ditolakCount         = (clone $baseQuery)->whereYear('created_at', $tahun)->where('status', 'Ditolak')->count();
-
-        // 6. Direvisi (route: monitoring.proposalDirevisi)
-        $direvisiCount        = (clone $baseQuery)->whereYear('created_at', $tahun)->where('status', 'Direvisi')->count();
-
-        // 7. Hasil Revisi (route: monitoring.hasilRevisi)
-        $hasilRevisiCount     = (clone $baseQuery)->whereYear('created_at', $tahun)->where('status', 'Hasil Revisi')->count();
-
-        // 8. Review Selesai (route: monitoring.reviewSelesai)
-        $reviewSelesaiCount   = (clone $baseQuery)->whereYear('created_at', $tahun)
-                                ->whereIn('status', ['Review Selesai', 'Hasil Revisi', 'Disetujui'])
-                                ->count();
-
-        // ================= ANALITIK FAKULTAS (KHUSUS ADMIN) =================
-        $rekapFakultas = null;
-        if ($role === 'admin') {
-            $rekapFakultas = Proposal::join('users', 'proposals.user_id', '=', 'users.id')
-                ->whereYear('proposals.created_at', $tahun)
-                ->select(
-                    'users.fakultas',
-                    DB::raw('count(proposals.id) as total_aju'),
-                    DB::raw('sum(case when proposals.status = "Disetujui" then 1 else 0 end) as total_setuju'),
-                    DB::raw('sum(proposals.biaya) as total_biaya')
-                )
-                ->groupBy('users.fakultas')
-                ->get();
+        // ================= DATA KHUSUS REVIEWER (Monitoring Tugas Penilaian) =================
+        $tugasReview = null;
+        if ($role === 'reviewer') {
+            $tugasReview = Proposal::whereIn('id', function($q) use ($user) {
+                $q->select('proposal_id')->from('proposal_reviewers')->where('reviewer_id', $user->id);
+            })->with('user')->latest()->get();
         }
 
-        // ================= DOKUMEN & NOTIFIKASI =================
-        $dokumenResmi = DokumenResmi::latest()->get();
-        $notifications = Notification::where('user_id', $user->id)
-                        ->orderBy('created_at', 'desc')
-                        ->take(5)
-                        ->get();
+        // Proposal milik sendiri (untuk Stepper Pengaju/Reviewer)
+        $latestProposal = Proposal::where('user_id', $user->id)->latest()->first();
 
-        return view('dashboard', compact(
-            'user', 'role', 'tahun', 'dokumenResmi', 'notifications',
-            'daftarProposalCount', 'perluDireviewCount', 'sedangDireviewCount',
-            'reviewSelesaiCount', 'disetujuiCount', 'ditolakCount',
-            'direvisiCount', 'hasilRevisiCount', 'rekapFakultas'
-        ));
+        // Data Tambahan (Admin & Umum)
+        $rekapFakultas = ($role === 'admin') ? $this->getRekapFakultas($tahun) : null;
+        $ringkasanLaporan = ($role === 'admin') ? $this->getRingkasanAdmin($tahun) : null;
+        $dokumenResmi = DokumenResmi::latest()->take(3)->get();
+        $notifications = Notification::where('user_id', $user->id)->latest()->take(5)->get();
+
+        return view('dashboard', array_merge($stats, compact(
+            'user', 'role', 'tahun', 'latestProposal', 'tugasReview',
+            'rekapFakultas', 'ringkasanLaporan', 'dokumenResmi', 'notifications'
+        )));
     }
 
     /**
-     * Sesuai Route: Route::post('/dashboard/update', ...)
+     * Memperbarui Profil User
      */
     public function updateProfile(Request $request)
     {
@@ -119,5 +92,54 @@ class DashboardController extends Controller
         ]));
 
         return redirect()->back()->with('success', 'Profil berhasil diperbarui!');
+    }
+
+    /**
+     * Menampilkan Riwayat Dosen (Khusus Admin)
+     * Menjawab error "Method riwayatDosen does not exist"
+     */
+    public function riwayatDosen(Request $request)
+    {
+        $search = $request->get('search');
+
+        $riwayatDosen = User::where('role', 'pengaju')
+            ->when($search, function ($query) use ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('nidn', 'like', "%{$search}%");
+                });
+            })
+            ->withCount([
+                'proposals as total_pengajuan',
+                'proposals as total_disetujui' => function ($query) {
+                    $query->where('status_pendanaan', 'Disetujui');
+                }
+            ])
+            ->withSum(['proposals as total_dana' => function ($query) {
+                $query->where('status_pendanaan', 'Disetujui');
+            }], 'biaya')
+            ->get();
+
+        return view('admin.riwayat_dosen', compact('riwayatDosen'));
+    }
+
+    // ================= HELPER METHODS (Private) =================
+
+    private function getRekapFakultas($tahun) {
+        return Proposal::join('users', 'proposals.user_id', '=', 'users.id')
+            ->whereYear('proposals.created_at', $tahun)
+            ->select('users.fakultas',
+                DB::raw('count(proposals.id) as total_pengajuan'),
+                DB::raw('sum(case when proposals.status_pendanaan = "Disetujui" then 1 else 0 end) as total_disetujui'),
+                DB::raw('sum(proposals.biaya) as total_biaya'))
+            ->groupBy('users.fakultas')->get();
+    }
+
+    private function getRingkasanAdmin($tahun) {
+        return [
+            'total_dana' => Proposal::whereYear('created_at', $tahun)->where('status_pendanaan', 'Disetujui')->sum('biaya'),
+            'total_penerima' => Proposal::whereYear('created_at', $tahun)->where('status_pendanaan', 'Disetujui')->count(),
+            'total_pengajuan' => Proposal::whereYear('created_at', $tahun)->count(),
+        ];
     }
 }

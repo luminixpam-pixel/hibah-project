@@ -119,11 +119,10 @@ Route::middleware(['auth'])->group(function () {
     | ROLE: PENGAJU ONLY
     |--------------------------------------------------------------------------
     */
-    Route::middleware(['role:pengaju'])->group(function () {
-        Route::get('/proposal/create', [ProposalController::class, 'create'])->name('proposal.create');
-        Route::post('/proposal/store', [ProposalController::class, 'store'])->name('proposal.store');
-    });
-
+    Route::middleware(['role:pengaju,reviewer'])->group(function () {
+    Route::get('/proposal/create', [ProposalController::class, 'create'])->name('proposal.create');
+    Route::post('/proposal/store', [ProposalController::class, 'store'])->name('proposal.store');
+});
     /*
     |--------------------------------------------------------------------------
     | ROLE: REVIEWER / ADMIN + REVIEWER
@@ -135,7 +134,14 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::middleware(['role:reviewer'])->group(function () {
-        Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])->name('reviewer.isi-review');
-        Route::post('/reviewer/isi-review/{id}', [ReviewerController::class, 'submitReview'])->name('reviewer.submitReview');
-    });
+    Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])->name('reviewer.isi-review');
+
+    // Gunakan nama 'review.simpan' agar cocok dengan error yang tadi muncul
+    Route::post('/reviewer/isi-review/{id}', [ReviewerController::class, 'submitReview'])->name('review.simpan');
 });
+   Route::patch('/proposal/{id}/set-review', [ProposalController::class, 'setReview'])->name('proposal.set-review');
+
+   Route::get('/review/{review}/pdf', [ProposalController::class, 'downloadReviewPdf'])->name('review.pdf');
+});
+
+

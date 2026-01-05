@@ -3,291 +3,275 @@
 @section('content')
 
 <style>
-.page-title { font-weight:700; font-size:22px; }
-.page-subtitle { color:#6c757d; font-size:14px; }
+    .page-title { font-weight:700; font-size:22px; color: #1e293b; }
+    .page-subtitle { color:#64748b; font-size:14px; }
 
-/* rapihin tabel */
-.table thead th{
-    background:#f8f9fa !important;
-    font-weight:600;
-    white-space:nowrap;
-}
-.table td{
-    vertical-align:top;
-}
-.col-reviewer{ min-width:320px; }
-.col-pengusul{ min-width:160px; }
-.col-judul{ min-width:260px; }
-.col-deadline{ min-width:170px; }
-.col-aksi{ min-width:140px; }
+    /* Table Styling */
+    .table thead th {
+        background:#f8fafc !important;
+        font-weight:600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #475569;
+        padding: 12px 15px !important;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .table td { vertical-align: middle; padding: 15px !important; }
 
-/* form reviewer jadi rapi */
-.reviewer-form{
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-    margin:0;
-}
-.reviewer-form .form-control{ width:100%; }
-.reviewer-inputs{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-}
-.deadline-group label{
-    font-size:12px;
-    color:#6c757d;
-    margin:0 0 2px 0;
-}
-.deadline-text{ line-height:1.15; }
-.deadline-badge{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    margin-top:6px;
-    font-weight:600;
-    font-size:12px;
-}
-.deadline-badge.danger{ color:#dc3545; }
-.deadline-badge.warning{ color:#ffc107; }
+    /* Status Badges */
+    .status-badge { padding: 4px 10px; border-radius: 50px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .bg-ongoing { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .bg-waiting { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .bg-finish { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
 
-/* autocomplete */
-.autocomplete-box{
-    border:1px solid #ddd;
-    max-height:180px;
-    overflow-y:auto;
-    position:absolute;
-    z-index:1050;
-    background:#fff;
-    width:100%;
-    border-radius:8px;
-    box-shadow:0 8px 18px rgba(0,0,0,.08);
-    margin-top:2px;
-}
-.autocomplete-item{ padding:8px 10px; cursor:pointer; }
-.autocomplete-item:hover{ background:#f1f1f1; }
+    /* Action Button */
+    .btn-action { font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
 
-/* kecilin padding tabel biar ga “meledak” */
-.table-sm td, .table-sm th{ padding:10px 12px; }
+    /* Reviewer Assigned Box */
+    .reviewer-assigned-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    /* Form Plotting */
+    .reviewer-form { display:flex; flex-direction:column; gap:8px; }
+    .deadline-group label { font-size:11px; font-weight: 700; color:#64748b; margin-bottom: 3px; display: block; }
+
+    /* Autocomplete */
+    .autocomplete-box {
+        border:1px solid #e2e8f0;
+        max-height:200px;
+        overflow-y:auto;
+        position:absolute;
+        z-index:1050;
+        background:#fff;
+        width:100%;
+        border-radius:8px;
+        box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);
+        margin-top:2px;
+    }
+    .autocomplete-item { padding:10px 12px; cursor:pointer; border-bottom: 1px solid #f1f5f9; }
+    .autocomplete-item:hover { background:#f8fafc; }
+
+    /* Deadline Wrapper */
+    .deadline-wrapper { padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center; min-width: 120px; }
+    .deadline-overdue { background-color: #fef2f2; border-color: #fee2e2; }
+    .deadline-urgent { background-color: #fffbeb; border-color: #fef3c7; }
 </style>
 
-<div class="container mt-4">
+<div class="container mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h4 class="page-title mb-1">Daftar Review Proposal</h4>
+            <p class="page-subtitle mb-0">
+                @if(auth()->user()->role === 'admin')
+                    Manajemen plotting reviewer dan pemantauan masa penilaian.
+                @else
+                    Daftar penugasan review proposal yang harus Anda nilai.
+                @endif
+            </p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-white text-dark border shadow-sm p-2">
+                Total: {{ $proposals->count() }} Proposal
+            </span>
+        </div>
+    </div>
 
-    <h4 class="page-title mb-1">
-        Daftar Proposal Yang Perlu Direview — Universitas YARSI
-    </h4>
-    <p class="page-subtitle mb-4">
-        Admin menetapkan 2 reviewer, reviewer yang ditugaskan dapat mengisi penilaian.
-    </p>
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 12px;">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-center" width="50">No</th>
+                        <th style="min-width: 250px;">{{ auth()->user()->role === 'admin' ? 'Setting Reviewer' : 'Status Review' }}</th>
+                        <th style="min-width: 180px;">Detail Pengusul</th>
+                        <th style="min-width: 280px;">Judul & Dokumen</th>
+                        <th class="text-center" style="min-width: 150px;">Tenggat</th>
+                        <th class="text-center" width="130">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($proposals as $index => $proposal)
+                        @php
+                            $isAssigned = $proposal->reviewers->count() >= 2;
+                            $dbDeadline = $proposal->review_deadline ? \Carbon\Carbon::parse($proposal->review_deadline) : null;
+                            $isOverdue = $dbDeadline ? now()->gt($dbDeadline) : false;
+                            $isUrgent = $dbDeadline ? (now()->diffInHours($dbDeadline) <= 24 && !$isOverdue) : false;
 
-    <div class="table-responsive">
-        <table class="table table-striped table-hover table-sm align-middle shadow-sm">
-            <thead>
-                <tr>
-                    <th width="50">No</th>
-                    <th class="col-reviewer">Reviewer</th>
-                    <th class="col-pengusul">Pengusul</th>
-                    <th class="col-judul">Judul Proposal</th>
-                    <th class="col-deadline">Tenggat Review</th>
-                    <th class="col-aksi">Aksi</th>
-                </tr>
-            </thead>
+                            // Cek apakah user saat ini sudah memberikan review (untuk Reviewer)
+                            $hasReviewed = $proposal->reviews->where('reviewer_id', auth()->id())->first();
+                        @endphp
+                        <tr>
+                            <td class="text-center fw-bold text-muted">{{ $index + 1 }}</td>
 
-            <tbody>
-            @forelse ($proposals as $index => $proposal)
-                <tr>
-                    <td class="fw-semibold">{{ $index + 1 }}</td>
+                            {{-- COLUMN 1: SETTING / STATUS --}}
+                            <td>
+                                @if(auth()->user()->role === 'admin')
+                                    @if($isAssigned)
+                                        <div class="reviewer-assigned-box mb-2">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="status-badge {{ $proposal->status === 'Review Selesai' ? 'bg-finish' : 'bg-ongoing' }}">
+                                                    {{ $proposal->status }}
+                                                </span>
+                                                <button class="btn btn-sm btn-link p-0 text-decoration-none small fw-bold"
+                                                        onclick="document.getElementById('form-{{ $proposal->id }}').classList.toggle('d-none')">
+                                                    Ubah Plotting
+                                                </button>
+                                            </div>
+                                            @foreach($proposal->reviewers as $rev)
+                                                <div class="small mb-1 text-dark"><i class="bi bi-person-check-fill me-2 text-primary"></i>{{ $rev->name }}</div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <div class="mb-2"><span class="status-badge bg-waiting">Menunggu Plotting</span></div>
+                                    @endif
 
-                    {{-- ================= REVIEWER ================= --}}
-                    <td class="col-reviewer">
-                        @if(auth()->user()->role === 'admin')
-
-                        <form action="{{ route('proposal.assignReviewer', $proposal->id) }}"
-                              method="POST"
-                              class="position-relative reviewer-form">
-                            @csrf
-
-                            <div class="reviewer-inputs position-relative">
-
-                                {{-- Reviewer 1 --}}
-                                <input type="hidden"
-                                       name="reviewer_1"
-                                       id="rev1_id_{{ $proposal->id }}"
-                                       value="{{ $proposal->reviewers->get(0)?->id }}">
-
-                                <div class="position-relative">
-                                    <input type="text"
-                                           class="form-control form-control-sm reviewer-search"
-                                           placeholder="Cari Reviewer 1"
-                                           data-target="rev1"
-                                           data-proposal="{{ $proposal->id }}"
-                                           autocomplete="off"
-                                           value="{{ $proposal->reviewers->get(0)?->name }}">
-                                    <div class="autocomplete-box d-none"
-                                         id="rev1_box_{{ $proposal->id }}"></div>
-                                </div>
-
-                                {{-- Reviewer 2 --}}
-                                <input type="hidden"
-                                       name="reviewer_2"
-                                       id="rev2_id_{{ $proposal->id }}"
-                                       value="{{ $proposal->reviewers->get(1)?->id }}">
-
-                                <div class="position-relative">
-                                    <input type="text"
-                                           class="form-control form-control-sm reviewer-search"
-                                           placeholder="Cari Reviewer 2"
-                                           data-target="rev2"
-                                           data-proposal="{{ $proposal->id }}"
-                                           autocomplete="off"
-                                           value="{{ $proposal->reviewers->get(1)?->name }}">
-                                    <div class="autocomplete-box d-none"
-                                         id="rev2_box_{{ $proposal->id }}"></div>
-                                </div>
-
-                                {{-- Tenggat Review --}}
-                                <div class="deadline-group">
-                                    <label class="form-label small text-muted">Tenggat Waktu Review</label>
-                                    <input type="datetime-local"
-                                        name="review_deadline"
-                                        class="form-control form-control-sm"
-                                        value="{{ $proposal->review_deadline ? \Carbon\Carbon::parse($proposal->review_deadline)->format('Y-m-d\TH:i') : '' }}"
-                                        required>
-                                </div>
-
-                            </div>
-
-                            <button type="submit"
-                                    class="btn btn-outline-primary btn-sm w-100">
-                                Kirim ke Reviewer
-                            </button>
-                        </form>
-
-                        @else
-                            @forelse ($proposal->reviewers as $rev)
-                                <div>• {{ $rev->name }}</div>
-                            @empty
-                                <span class="text-muted">Belum ditetapkan</span>
-                            @endforelse
-                        @endif
-                    </td>
-
-                    <td class="col-pengusul">{{ $proposal->nama_ketua }}</td>
-
-                    <td class="col-judul">
-                        <div class="fw-semibold">{{ $proposal->judul }}</div>
-                    </td>
-
-                    {{-- ================= TENGGAT ================= --}}
-                    <td class="col-deadline">
-                        @if($proposal->review_deadline)
-                            @php $deadline = \Carbon\Carbon::parse($proposal->review_deadline); @endphp
-
-                            <div class="deadline-text">
-                                <div class="fw-semibold">{{ $deadline->format('d M Y') }}</div>
-                                <div class="text-muted small">{{ $deadline->format('H:i') }} WIB</div>
-
-                                @if(now()->gt($deadline))
-                                    <div class="deadline-badge danger">Lewat Tenggat</div>
-                                @elseif(now()->diffInHours($deadline) <= 24)
-                                    <div class="deadline-badge warning">Kurang dari 24 jam</div>
-                                @endif
-                            </div>
-                        @else
-                            <span class="text-muted">Belum ditentukan</span>
-                        @endif
-                    </td>
-
-                    {{-- ================= AKSI ================= --}}
-                    <td class="col-aksi">
-                        @if(auth()->user()->role === 'reviewer')
-                            @if($proposal->reviewers->pluck('id')->contains(auth()->id()))
-                                @if($proposal->review_deadline && now()->gt($proposal->review_deadline))
-                                    <button class="btn btn-secondary btn-sm w-100" disabled>
-                                        Tenggat Berakhir
-                                    </button>
+                                    <form id="form-{{ $proposal->id }}" action="{{ route('proposal.assignReviewer', $proposal->id) }}"
+                                          method="POST" class="reviewer-form {{ $isAssigned ? 'd-none border-top pt-2 mt-2' : '' }}">
+                                        @csrf
+                                        <div class="position-relative">
+                                            <input type="hidden" name="reviewer_1" id="rev1_id_{{ $proposal->id }}" value="{{ $proposal->reviewers->get(0)?->id }}">
+                                            <input type="text" class="form-control form-control-sm reviewer-search" placeholder="Cari Reviewer 1..." data-target="rev1" data-proposal="{{ $proposal->id }}" autocomplete="off" value="{{ $proposal->reviewers->get(0)?->name }}">
+                                            <div class="autocomplete-box d-none" id="rev1_box_{{ $proposal->id }}"></div>
+                                        </div>
+                                        <div class="position-relative">
+                                            <input type="hidden" name="reviewer_2" id="rev2_id_{{ $proposal->id }}" value="{{ $proposal->reviewers->get(1)?->id }}">
+                                            <input type="text" class="form-control form-control-sm reviewer-search" placeholder="Cari Reviewer 2..." data-target="rev2" data-proposal="{{ $proposal->id }}" autocomplete="off" value="{{ $proposal->reviewers->get(1)?->name }}">
+                                            <div class="autocomplete-box d-none" id="rev2_box_{{ $proposal->id }}"></div>
+                                        </div>
+                                        <div class="deadline-group">
+                                            <label>Tenggat Penilaian</label>
+                                            <input type="datetime-local" name="review_deadline" class="form-control form-control-sm"
+                                                   value="{{ $dbDeadline ? $dbDeadline->format('Y-m-d\TH:i') : '' }}" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-sm w-100 shadow-sm fw-bold">Simpan Plotting</button>
+                                    </form>
                                 @else
+                                    {{-- Info untuk Reviewer --}}
+                                    <span class="status-badge {{ $hasReviewed ? 'bg-finish' : 'bg-ongoing' }}">
+                                        {{ $hasReviewed ? 'Sudah Dinilai' : 'Menunggu Penilaian' }}
+                                    </span>
+                                    <div class="mt-2 small text-muted">
+                                        <i class="bi bi-info-circle me-1"></i> Status Proposal: <strong>{{ $proposal->status }}</strong>
+                                    </div>
+                                @endif
+                            </td>
+
+                            {{-- COLUMN 2: PENGUSUL --}}
+                            <td>
+                                <div class="fw-bold text-dark" style="font-size: 14px;">{{ $proposal->nama_ketua }}</div>
+                                <div class="text-muted" style="font-size: 12px;">
+                                    <i class="bi bi-building me-1"></i>{{ $proposal->user->fakultas ?? 'Fakultas' }}
+                                </div>
+                            </td>
+
+                            {{-- COLUMN 3: JUDUL & FILE --}}
+                            <td>
+                                <div class="fw-semibold text-dark mb-2" style="line-height: 1.4; font-size: 13px;">{{ $proposal->judul }}</div>
+                                <a href="{{ route('proposal.download', $proposal->id) }}" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 11px;">
+                                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Unduh Proposal
+                                </a>
+                            </td>
+
+                            {{-- COLUMN 4: DEADLINE --}}
+                            <td class="text-center">
+                                @if($dbDeadline)
+                                    <div class="deadline-wrapper {{ $isOverdue ? 'deadline-overdue' : ($isUrgent ? 'deadline-urgent' : '') }}">
+                                        <div class="fw-bold text-dark" style="font-size: 13px;">
+                                            {{ $dbDeadline->translatedFormat('d M Y') }}
+                                        </div>
+                                        <div class="text-muted small mb-1">
+                                            {{ $dbDeadline->format('H:i') }} WIB
+                                        </div>
+                                        @if($isOverdue)
+                                            <span class="badge bg-danger w-100" style="font-size: 9px;">WAKTU HABIS</span>
+                                        @else
+                                            <span class="badge bg-success w-100" style="font-size: 9px;">
+                                                SISA: {{ now()->diffForHumans($dbDeadline, true) }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="text-muted small italic">Belum diset</span>
+                                @endif
+                            </td>
+
+                            {{-- COLUMN 5: AKSI --}}
+                            <td class="text-center">
+                                @if(auth()->user()->role === 'reviewer')
                                     <a href="{{ route('reviewer.isi-review', $proposal->id) }}"
-                                       class="btn btn-success btn-sm w-100">
-                                        Beri Review
+                                       class="btn btn-action {{ $hasReviewed ? 'btn-outline-secondary' : 'btn-primary shadow-sm' }} w-100">
+                                        <i class="bi {{ $hasReviewed ? 'bi-eye' : 'bi-pencil-square' }} me-1"></i>
+                                        {{ $hasReviewed ? 'Lihat Nilai' : 'Beri Nilai' }}
+                                    </a>
+                                @else
+                                    <a href="{{ route('proposal.tinjau', $proposal->id) }}" class="btn btn-action btn-light border w-100">
+                                        <i class="bi bi-search me-1"></i> Tinjau
                                     </a>
                                 @endif
-                            @else
-                                <span class="text-muted">—</span>
-                            @endif
-                        @else
-                            <span class="text-muted">—</span>
-                        @endif
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="6" class="text-center text-muted">
-                        Belum ada proposal.
-                    </td>
-                </tr>
-            @endforelse
-            </tbody>
-
-        </table>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="text-center py-5 text-muted">Data proposal tidak ditemukan.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
 @endsection
 
 @push('scripts')
 <script>
-document.querySelectorAll('.reviewer-search').forEach(input => {
-    input.addEventListener('keyup', function () {
+    // Logic for Autocomplete (Tetap sama dengan kode awal Anda)
+    document.querySelectorAll('.reviewer-search').forEach(input => {
+        input.addEventListener('keyup', function () {
+            const query = this.value.trim();
+            const proposalId = this.dataset.proposal;
+            const target = this.dataset.target;
+            const box = document.getElementById(`${target}_box_${proposalId}`);
 
-        const query = this.value.trim();
-        const proposalId = this.dataset.proposal;
-        const target = this.dataset.target;
-        const box = document.getElementById(`${target}_box_${proposalId}`);
+            if (query.length < 2) {
+                box.classList.add('d-none');
+                return;
+            }
 
-        if (query.length < 2) {
-            box.classList.add('d-none');
-            return;
-        }
-
-        fetch(`/admin/search-reviewer?q=${query}`)
-            .then(res => res.json())
-            .then(data => {
-                box.innerHTML = '';
-                box.classList.remove('d-none');
-
-                if (data.length === 0) {
-                    box.innerHTML = `
-                        <div class="autocomplete-item text-muted">
-                            Reviewer tidak ditemukan
-                        </div>`;
-                    return;
-                }
-
-                data.forEach(user => {
-                    const div = document.createElement('div');
-                    div.className = 'autocomplete-item';
-                    div.innerHTML = `
-                        <strong>${user.name}</strong><br>
-                        <small class="text-muted">${user.penempatan ?? ''}</small>
-                    `;
-                    div.onclick = () => {
-                        input.value = user.name;
-                        document.getElementById(`${target}_id_${proposalId}`).value = user.id;
-                        box.classList.add('d-none');
-                    };
-                    box.appendChild(div);
+            fetch(`/admin/search-reviewer?q=${query}`)
+                .then(res => res.json())
+                .then(data => {
+                    box.innerHTML = '';
+                    box.classList.remove('d-none');
+                    if (data.length === 0) {
+                        box.innerHTML = `<div class="autocomplete-item text-muted small text-center">Tidak ditemukan</div>`;
+                        return;
+                    }
+                    data.forEach(user => {
+                        const div = document.createElement('div');
+                        div.className = 'autocomplete-item';
+                        div.innerHTML = `
+                            <div class="fw-bold" style="font-size: 12px;">${user.name}</div>
+                            <div class="text-muted" style="font-size: 10px;">${user.penempatan ?? 'Reviewer'}</div>
+                        `;
+                        div.onclick = () => {
+                            input.value = user.name;
+                            document.getElementById(`${target}_id_${proposalId}`).value = user.id;
+                            box.classList.add('d-none');
+                        };
+                        box.appendChild(div);
+                    });
                 });
-            });
-    });
-});
-
-// klik di luar nutup box
-document.addEventListener('click', function(e) {
-    if (!e.target.classList.contains('reviewer-search')) {
-        document.querySelectorAll('.autocomplete-box').forEach(box => {
-            box.classList.add('d-none');
         });
-    }
-});
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('reviewer-search')) {
+            document.querySelectorAll('.autocomplete-box').forEach(box => box.classList.add('d-none'));
+        }
+    });
 </script>
 @endpush

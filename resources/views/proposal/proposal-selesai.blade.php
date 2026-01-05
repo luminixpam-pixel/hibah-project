@@ -1,202 +1,248 @@
 @extends('layouts.app')
 
-@php
-    $role = Auth::user()->role ?? null;
-@endphp
-
 @section('content')
-
 <style>
-    .page-title {
-        font-weight: 700;
-        font-size: 22px;
-        color: #2d2d2d;
+    body { background-color: #f0fdf4; } /* Latar belakang hijau lembut tema YARSI */
+
+    .main-card {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        margin-top: 20px;
+        border: none;
     }
 
+    .page-title { font-weight: 800; font-size: 24px; color: #333; }
+    .page-subtitle { color: #777; font-size: 14px; }
+
+    /* Search Box styling */
+    .search-wrapper {
+        position: relative;
+        max-width: 350px;
+        float: right;
+        margin-bottom: 25px;
+    }
+    .search-wrapper input {
+        border-radius: 12px;
+        padding-left: 45px;
+        height: 45px;
+        border: 1px solid #e0e0e0;
+        background: #fff;
+    }
+    .search-wrapper i {
+        position: absolute;
+        left: 15px;
+        top: 13px;
+        color: #aaa;
+        font-size: 18px;
+    }
+
+    /* Table styling - Identik dengan halaman Sedang Direview */
     .table thead th {
-        background: #f8f9fa !important;
-        font-weight: 600;
-    }
-
-    .btn-action {
-        padding: 4px 10px; /* 🔽 diperkecil */
-        border-radius: 6px;
-        font-size: 13px;   /* 🔽 diperkecil */
-    }
-
-    .page-subtitle {
-        font-size: 15px;
-        color: #6c757d;
-    }
-
-    /* ================= KOLOM WIDTH ================= */
-    .col-reviewer {
-        width: 260px;          /* 🔼 BESAR */
-    }
-
-    .col-jumlah-review {
-        width: 90px;           /* 🔽 KECIL */
+        border: none;
+        color: #888;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 15px;
         text-align: center;
-        white-space: nowrap;
+    }
+    .table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f2f2f2;
     }
 
-    .col-aksi {
-        width: 120px;          /* 🔽 KECIL */
-        white-space: nowrap;
+    /* Skor styling */
+    .skor-akhir {
+        color: #007bff;
+        font-weight: 800;
+        font-size: 20px;
+        margin-bottom: 0;
+        line-height: 1;
+    }
+    .skor-label {
+        font-size: 9px;
+        color: #999;
+        font-weight: 600;
+        text-transform: uppercase;
     }
 
-    .aksi-wrap {
-        gap: 4px !important;
+    /* Action buttons PDF */
+    .btn-pdf {
+        border: 1px solid #ffcccc;
+        color: #ff5b5b;
+        background: white;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: 0.3s;
+    }
+    .btn-pdf:hover {
+        background: #fff5f5;
+        color: #d94545;
+    }
+
+    /* Custom select pendanaan */
+    .select-pendanaan {
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 8px 12px;
+        cursor: pointer;
+    }
+
+    .nav-btn {
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 8px 16px;
+        transition: 0.3s;
+    }
+
+    .badge-status-selesai {
+        background-color: #e0f2ff;
+        color: #007bff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 6px;
+        text-transform: uppercase;
     }
 </style>
 
-<div class="container mt-4">
-
-    {{-- TITLE --}}
-    <h4 class="page-title mb-1"> Daftar Review Selesai — Universitas YARSI</h4>
-    <p class="page-subtitle mb-4">
-        Berikut daftar seluruh proposal yang review-nya sudah lengkap (2 reviewer submit).
-    </p>
-
-    {{-- 🔍 SEARCH --}}
-    <div class="d-flex justify-content-end mb-3">
-        <div class="input-group" style="max-width: 320px;">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" id="table-search" class="form-control"
-                   placeholder="Cari Judul Proposal atau Nama Dosen">
+<div class="container pb-5">
+    <div class="main-card">
+        {{-- HEADER --}}
+        <div class="row align-items-center mb-2">
+            <div class="col-md-8">
+                <h4 class="page-title">Daftar Review Selesai — Universitas YARSI</h4>
+                <p class="page-subtitle">Keputusan pendanaan berdasarkan hasil rata-rata skor dari para reviewer.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="search-wrapper w-100">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="table-search" class="form-control shadow-sm" placeholder="Cari judul atau pengusul...">
+                </div>
+            </div>
         </div>
-    </div>
 
-    {{-- TABLE --}}
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle shadow-sm">
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Judul Proposal</th>
-                    <th>Pengusul</th>
-                    <th class="col-reviewer">Reviewer</th>
-                    <th>Status Proposal</th>
-                    <th>Skor Reviewer</th>
-                    <th class="col-jumlah-review">Jumlah Review</th>
-                    <th>Tanggal Review</th>
-                    <th class="col-aksi">Aksi</th>
-                </tr>
-            </thead>
+        {{-- TABLE --}}
+        <div class="table-responsive mt-3">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th width="5%">No</th>
+                        <th class="text-start" width="30%">Judul Proposal & Pengusul</th>
+                        <th class="text-start" width="20%">Reviewer</th>
+                        <th>Skor Akhir</th>
+                        <th width="15%">Status Pendanaan</th>
+                        <th width="15%">Hasil Review</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @forelse($proposals as $index => $proposal)
+                    @php
+                        $proposalReviews = $proposal->reviews ?? collect();
+                        $avgScore = $proposalReviews->avg('total_score') ?? 0;
+                        $isDone = !is_null($proposal->status_pendanaan);
+                    @endphp
+                    <tr>
+                        <td class="text-center fw-bold text-muted">{{ $index + 1 }}</td>
 
-            <tbody>
-            @forelse($proposals as $index => $proposal)
-                @php
-                    $pengusul   = $proposal->user->name ?? '-';
-                    $judul      = $proposal->judul ?? '-';
-                    $statusProp = $proposal->status ?? '-';
-
-                    $proposalReviews = $proposal->reviews ?? collect();
-                    $reviewCount = $proposalReviews->unique('reviewer_id')->count();
-                    $lastReviewDate = optional($proposalReviews->sortByDesc('created_at')->first())->created_at;
-                @endphp
-
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $judul }}</td>
-                    <td>{{ $pengusul }}</td>
-
-                    {{-- REVIEWER (besar) --}}
-                    <td class="col-reviewer">
-                        @forelse($proposalReviews as $rev)
-                            <div class="small">• {{ $rev->reviewer->name ?? 'Reviewer' }}</div>
-                        @empty
-                            <span class="text-muted">-</span>
-                        @endforelse
-                    </td>
-
-                    <td>
-                        <span class="badge bg-info">{{ $statusProp }}</span>
-                    </td>
-
-                    {{-- SKOR --}}
-                    <td>
-                        @forelse($proposalReviews as $rev)
-                            <div class="small">
-                                <strong>{{ $rev->reviewer->name ?? 'Reviewer' }}:</strong>
-                                {{ $rev->total_score !== null ? number_format($rev->total_score, 2) : '-' }}
+                        {{-- JUDUL & PENGUSUL --}}
+                        <td>
+                            <div class="fw-bold text-dark" style="font-size: 14px; line-height: 1.4;">{{ $proposal->judul }}</div>
+                            <div class="text-primary small mt-1" style="font-size: 12px;">
+                                <i class="bi bi-person me-1"></i>{{ $proposal->user->name ?? $proposal->nama_ketua }}
                             </div>
-                        @empty
-                            <span class="text-muted">-</span>
-                        @endforelse
-                    </td>
+                            <span class="badge badge-status-selesai mt-2">Selesai</span>
+                        </td>
 
-                    {{-- JUMLAH REVIEW (kecil) --}}
-                    <td class="col-jumlah-review">
-                        <span class="badge bg-secondary">{{ $reviewCount }}</span>
-                        <span class="text-muted">/2</span>
-                    </td>
+                        {{-- REVIEWER LIST --}}
+                        <td>
+                            @forelse($proposalReviews as $rev)
+                                <div class="small text-dark mb-2 d-flex align-items-center">
+                                    <i class="bi bi-person-circle me-2 text-primary"></i>
+                                    {{ $rev->reviewer->name ?? 'Reviewer' }}
+                                </div>
+                            @empty
+                                <span class="text-muted small">-</span>
+                            @endforelse
+                        </td>
 
-                    <td>
-                        {{ $lastReviewDate ? $lastReviewDate->format('d M Y') : '-' }}
-                    </td>
+                        {{-- SKOR AKHIR --}}
+                        <td class="text-center">
+                            <p class="skor-akhir">{{ number_format($avgScore, 2) }}</p>
+                            <span class="skor-label">Rata-rata</span>
+                        </td>
 
-                    {{-- AKSI (kecil & rapi) --}}
-                    <td class="col-aksi">
-                        <div class="d-flex flex-column aksi-wrap">
+                        {{-- STATUS PENDANAAN --}}
+                        <td>
+                            @if(Auth::user()->role === 'admin')
+                                <form action="{{ route('proposal.keputusan', $proposal->id) }}" method="POST">
+                                    @csrf @method('PATCH')
+                                    <select name="status_pendanaan"
+                                            class="form-select select-pendanaan shadow-sm border-{{ $isDone ? 'success' : 'primary' }}"
+                                            onchange="if(confirm('Simpan keputusan ini?')) this.form.submit()">
+                                        <option value="" disabled {{ !$isDone ? 'selected' : '' }}>-- Pilih --</option>
+                                        <option value="Disetujui" {{ $proposal->status_pendanaan == 'Disetujui' ? 'selected' : '' }}>Disetujui</option>
+                                        <option value="Ditolak" {{ $proposal->status_pendanaan == 'Ditolak' ? 'selected' : '' }}>Ditolak</option>
+                                        <option value="Direvisi" {{ $proposal->status_pendanaan == 'Direvisi' ? 'selected' : '' }}>Direvisi</option>
+                                    </select>
+                                </form>
+                            @else
+                                <div class="text-center">
+                                    <span class="badge {{ $isDone ? 'bg-success' : 'bg-secondary' }} p-2 shadow-sm" style="border-radius: 8px;">
+                                        {{ $proposal->status_pendanaan ?? 'PROSES' }}
+                                    </span>
+                                </div>
+                            @endif
+                        </td>
+
+                        {{-- BERKAS PDF --}}
+                        <td>
                             @foreach($proposalReviews as $rev)
-                                <a href="{{ route('review.pdf', $rev->id) }}"
-                                   class="btn btn-outline-primary btn-sm btn-action">
-                                    Hasil Review
+                                <a href="{{ route('review.pdf', $rev->id) }}" class="btn-pdf shadow-sm">
+                                    <i class="bi bi-file-earmark-pdf-fill"></i> PDF Rev {{ $loop->iteration }}
                                 </a>
                             @endforeach
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted small">Belum ada data review selesai.</td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
 
-                            @if($role === 'admin')
-                                <form action="{{ route('proposal.approve', $proposal->id) }}" method="POST">
-                                    @csrf
-                                    @method('PUT')
-                                    <button class="btn btn-success btn-sm btn-action w-100">
-                                        Terima
-                                    </button>
-                                </form>
-
-                                <form action="{{ route('proposal.reject', $proposal->id) }}" method="POST">
-                                    @csrf
-                                    @method('PUT')
-                                    <button class="btn btn-danger btn-sm btn-action w-100">
-                                        Tolak
-                                    </button>
-                                </form>
-                            @endif
-                        </div>
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="9" class="text-center text-muted py-3">
-                        Belum ada proposal yang review-nya selesai.
-                    </td>
-                </tr>
-            @endforelse
-            </tbody>
-
-        </table>
+        {{-- NAVIGATION BOTTOM --}}
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{{ route('monitoring.proposalSedangDireview') }}" class="btn btn-outline-success nav-btn">
+                <i class="bi bi-arrow-left me-1"></i> Sedang Direview
+            </a>
+            <span class="text-muted small">Universitas YARSI &copy; {{ date('Y') }}</span>
+        </div>
     </div>
-
 </div>
-
 @endsection
 
 @push('scripts')
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById('table-search');
-    if (!searchInput) return;
-
-    const rows = document.querySelectorAll('table tbody tr');
-
-    searchInput.addEventListener('keyup', function () {
-        const term = this.value.toLowerCase();
-
-        rows.forEach(row => {
+    document.getElementById('table-search').addEventListener('keyup', function() {
+        let term = this.value.toLowerCase();
+        document.querySelectorAll('tbody tr').forEach(row => {
             row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
         });
     });
-});
 </script>
 @endpush

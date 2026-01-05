@@ -62,5 +62,8 @@ public function proposals()
     // Pastikan 'user_id' adalah nama kolom di tabel proposals yang merujuk ke id user
     return $this->hasMany(\App\Models\Proposal::class, 'user_id');
 }
-
+public function activityLogs()
+{
+    return $this->hasMany(ActivityLog::class);
+}
 }

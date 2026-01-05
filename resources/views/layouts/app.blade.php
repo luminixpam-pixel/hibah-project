@@ -98,22 +98,21 @@
                     </a>
                 </li>
 
-                {{--UNGGAH--}}
+               {{--UNGGAH--}}
                 <li class="nav-item dropdown">
-                    <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                         <i class="bi bi-upload"></i> Unggah
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        {{-- Menu untuk Pengaju dan Reviewer (Sama-sama bisa unggah) --}}
+                        {{-- Menu untuk Pengaju dan Reviewer --}}
                         @if(in_array(Auth::user()->role, ['pengaju', 'reviewer']))
-                            {{-- Sekarang Reviewer juga bisa melihat tombol ini --}}
+                            {{-- Tombol untuk memicu Popup Proposal --}}
                             <li><a class="dropdown-item" href="#" id="openPopupBtn">Unggah Proposal</a></li>
-
                             <li><a class="dropdown-item" href="{{ route('laporan.kemajuan.index') }}">Unggah Laporan Kemajuan</a></li>
                             <li><a class="dropdown-item" href="{{ route('dokumen.user') }}">Dokumen</a></li>
                         @endif
 
+                        {{-- Menu Khusus Admin --}}
                         @if(Auth::user()->role === 'admin')
                             <li><a class="dropdown-item" href="{{ route('admin.dokumen.index') }}">Upload Dokumen/Template Dokumen</a></li>
                         @endif
@@ -125,7 +124,7 @@
                         <i class="bi bi-bar-chart"></i> Monitoring & Data
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('monitoring.proposalDikirim') }}">Daftar Proposal</a></li>
+                        <li><a class="dropdown-item" href="{{ route('proposal.index') }}">Daftar Proposal</a></li>
                         @if(Auth::user()->role!=='pengaju')
                             <li><a class="dropdown-item" href="{{ route('monitoring.proposalPerluDireview') }}">Proposal Perlu Direview</a></li>
                             <li><a class="dropdown-item" href="{{ route('monitoring.proposalSedangDireview') }}">Proposal Sedang Direview</a></li>
@@ -187,7 +186,7 @@
 </div>
 
 {{-- Popup Proposal --}}
-@if(Auth::user()->role==='pengaju')
+@if(in_array(Auth::user()->role, ['pengaju', 'reviewer']))
 <div id="proposalPopup" class="popup-overlay">
     <div class="popup-content">
         <span class="close-popup" id="closePopupBtn">&times;</span>
