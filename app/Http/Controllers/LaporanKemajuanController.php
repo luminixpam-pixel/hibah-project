@@ -40,38 +40,49 @@ class LaporanKemajuanController extends Controller
 
         $proposals = $query->latest()->paginate(10);
 
-        return view('reviewer.laporan-kemajuan', compact('proposals'));
+        // ✅ untuk dropdown upload (pengaju saja)
+        $myProposals = null;
+        if (Auth::user()->role === 'pengaju') {
+            $myProposals = Proposal::where('user_id', Auth::id())
+                ->latest()
+                ->get(['id', 'judul']);
+        }
+
+        return view('reviewer.laporan-kemajuan', compact('proposals', 'myProposals'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:pdf,doc,docx|max:10240', // Ukuran ditingkatkan ke 10MB agar aman
+            'proposal_id' => 'required|exists:proposals,id', // ✅ pilih proposal
+            'file' => 'required|mimes:pdf,doc,docx|max:10240',
             'keterangan' => 'nullable|string',
         ]);
 
         if ($request->hasFile('file')) {
-            // Cari proposal milik user yang sedang login
-            $proposal = Proposal::where('user_id', Auth::id())->first();
 
-            if ($proposal) {
-                // Hapus file lama jika ada
-                if ($proposal->file_laporan && Storage::disk('public')->exists($proposal->file_laporan)) {
-                    Storage::disk('public')->delete($proposal->file_laporan);
-                }
+            // ✅ ambil proposal yang dipilih + pastikan milik user login
+            $proposal = Proposal::where('id', $request->proposal_id)
+                ->where('user_id', Auth::id())
+                ->first();
 
-                $path = $request->file('file')->store('laporan_kemajuan', 'public');
-
-                $proposal->update([
-                    'file_laporan' => $path,
-                    'keterangan' => $request->keterangan,
-                    // Status tetap biarkan sesuai alur pendanaan atau ganti jika perlu
-                ]);
-
-                return redirect()->back()->with('success', 'Laporan berhasil diunggah!');
+            if (!$proposal) {
+                return redirect()->back()->with('error', 'Proposal tidak valid / bukan milik Anda.');
             }
 
-            return redirect()->back()->with('error', 'Data proposal Anda tidak ditemukan di sistem.');
+            // Hapus file lama jika ada
+            if ($proposal->file_laporan && Storage::disk('public')->exists($proposal->file_laporan)) {
+                Storage::disk('public')->delete($proposal->file_laporan);
+            }
+
+            $path = $request->file('file')->store('laporan_kemajuan', 'public');
+
+            $proposal->update([
+                'file_laporan' => $path,
+                'keterangan' => $request->keterangan,
+            ]);
+
+            return redirect()->back()->with('success', 'Laporan berhasil diunggah!');
         }
 
         return redirect()->back()->withErrors(['file' => 'Gagal mengunggah file.']);
