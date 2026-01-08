@@ -1,11 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'Unggah Laporan Kemajuan Final')
+@section('title', Auth::user()->role === 'admin' ? 'Laporan Kemajuan' : 'Unggah Laporan Kemajuan Final')
 
 @section('content')
 {{-- Area abu-abu lebar dengan container-fluid --}}
 <div class="container-fluid py-4 px-md-5">
-    <h4 class="mb-4 fw-bold text-secondary">Unggah Laporan Kemajuan</h4>
+
+    {{-- ✅ Judul beda untuk admin --}}
+    <h4 class="mb-4 fw-bold text-secondary">
+        {{ Auth::user()->role === 'admin' ? 'Laporan Kemajuan' : 'Unggah Laporan Kemajuan' }}
+    </h4>
 
     {{-- ALERT SUCCESS/ERROR --}}
     @if (session('success'))
@@ -17,6 +21,9 @@
 
     <div class="row">
         <div class="col-12">
+
+            {{-- ✅ FORM UNGGAH: disembunyikan kalau admin --}}
+            @if(Auth::user()->role !== 'admin')
             {{-- CARD FORM --}}
             <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
                 <div class="card-body p-4">
@@ -58,6 +65,7 @@
                     </form>
                 </div>
             </div>
+            @endif
 
             {{-- CARD TABLE --}}
             <div class="card border-0 shadow-sm" style="border-radius: 12px;">
@@ -109,10 +117,12 @@
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
-    {{-- Bottom Nav --}}
+    {{-- ✅ Bottom Nav: admin gak perlu --}}
+    @if(Auth::user()->role !== 'admin')
     <div class="d-flex justify-content-between mt-4 mb-5">
         <a href="{{ url('/status/review') }}" class="btn btn-outline-success btn-sm px-3 bg-white fw-bold shadow-sm border-success text-success">
             <i class="bi bi-chevron-left"></i> Sedang Direview
@@ -121,6 +131,8 @@
             Proposal Selesai <i class="bi bi-chevron-right"></i>
         </a>
     </div>
+    @endif
+
 </div>
 
 <style>
@@ -135,6 +147,7 @@
 </style>
 
 @push('scripts')
+@if(Auth::user()->role !== 'admin')
 <script>
     document.getElementById('uploadForm').onsubmit = function() {
         document.getElementById('submitBtn').classList.add('disabled');
@@ -142,5 +155,6 @@
         document.getElementById('btnText').innerText = 'Mengirim...';
     };
 </script>
+@endif
 @endpush
 @endsection

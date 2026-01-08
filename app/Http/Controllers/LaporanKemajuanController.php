@@ -13,16 +13,32 @@ class LaporanKemajuanController extends Controller
     {
         $search = $request->input('search');
 
-        // PERBAIKAN: Ubah 'reviewer' menjadi 'reviewers' (sesuai nama relasi di Model Proposal)
-        $proposals = Proposal::with(['user', 'reviewers'])
-            ->when($search, function ($query, $search) {
-                return $query->where('judul', 'like', "%{$search}%")
-                             ->orWhereHas('user', function($q) use ($search) {
-                                 $q->where('name', 'like', "%{$search}%");
-                             });
-            })
-            ->latest()
-            ->paginate(10);
+        // ✅ mulai query dasar
+        $query = Proposal::with(['user', 'reviewers']);
+
+        // ✅ FILTER biar riwayat tidak campur
+        // - pengaju: hanya proposal miliknya
+        // - reviewer: hanya proposal yang ditugaskan ke dia
+        // - admin: lihat semua (tidak difilter)
+        if (Auth::user()->role === 'pengaju') {
+            $query->where('user_id', Auth::id());
+        } elseif (Auth::user()->role === 'reviewer') {
+            $query->whereHas('reviewers', function ($q) {
+                $q->where('users.id', Auth::id());
+            });
+        }
+
+        // ✅ SEARCH harus digroup, biar orWhereHas gak "nembus" filter di atas
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('judul', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($u) use ($search) {
+                      $u->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $proposals = $query->latest()->paginate(10);
 
         return view('reviewer.laporan-kemajuan', compact('proposals'));
     }
@@ -59,5 +75,23 @@ class LaporanKemajuanController extends Controller
         }
 
         return redirect()->back()->withErrors(['file' => 'Gagal mengunggah file.']);
+    }
+
+    /**
+     * ✅ DOWNLOAD LAPORAN KEMAJUAN (dipakai oleh route laporan.kemajuan.download)
+     */
+    public function downloadLaporan($id)
+    {
+        $proposal = Proposal::findOrFail($id);
+
+        if (!$proposal->file_laporan) {
+            return redirect()->back()->with('error', 'File laporan belum tersedia.');
+        }
+
+        if (!Storage::disk('public')->exists($proposal->file_laporan)) {
+            return redirect()->back()->with('error', 'File laporan tidak ditemukan di storage.');
+        }
+
+        return Storage::disk('public')->download($proposal->file_laporan);
     }
 }

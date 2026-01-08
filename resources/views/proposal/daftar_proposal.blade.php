@@ -8,7 +8,13 @@
 <div class="container mt-4">
     {{-- Header & Filter Tahun --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold text-dark">Daftar Monitoring Proposal Tahun {{ $tahun }}</h4>
+        {{-- ✅ BEDAIN JUDUL SESUAI ROLE --}}
+        @if($role === 'admin')
+            <h4 class="fw-bold text-dark">Daftar Proposal Masuk Tahun {{ $tahun }}</h4>
+        @else
+            <h4 class="fw-bold text-dark">Daftar Proposal Dikirim Tahun {{ $tahun }}</h4>
+        @endif
+
         <form action="{{ route('proposal.index') }}" method="GET" class="d-flex gap-2">
             <select name="tahun" class="form-select form-select-sm border-0 shadow-sm" onchange="this.form.submit()">
                 @foreach(range(date('Y'), 2023) as $year)
@@ -57,8 +63,15 @@
                                     'Direvisi' => 'danger',
                                     default => 'dark'
                                 };
+
+                                // ✅ LABEL KHUSUS ADMIN: "Dikirim" jadi "Proposal Masuk"
+                                $statusText = ($role === 'admin' && $proposal->status === 'Dikirim')
+                                    ? 'Proposal Masuk'
+                                    : $proposal->status;
                             @endphp
-                            <span class="badge bg-{{ $alurClass }} rounded-pill" style="font-size: 10px;">{{ $proposal->status }}</span>
+                            <span class="badge bg-{{ $alurClass }} rounded-pill" style="font-size: 10px;">
+                                {{ $statusText }}
+                            </span>
                         </td>
 
                         {{-- Aksi --}}

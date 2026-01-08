@@ -29,7 +29,7 @@
 <div class="container mt-4">
 
     {{-- TITLE --}}
-    <h4 class="page-title mb-1"> Proposal Direvisi — Universitas YARSI</h4>
+    <h4 class="page-title mb-1"> Daftar Proposal Direvisi — Universitas YARSI</h4>
     <p class="page-subtitle mb-4">Berikut daftar seluruh proposal yang Direvisi.</p>
 
     {{-- 🔍 SEARCH --}}

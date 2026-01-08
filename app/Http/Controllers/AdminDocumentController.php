@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\AdminDocument;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+
 class AdminDocumentController extends Controller
 {
     // ADMIN VIEW
@@ -29,23 +30,35 @@ class AdminDocumentController extends Controller
         AdminDocument::create([
             'judul' => $request->judul,
             'file_path' => $path,
-            'uploaded_by' => Auth::id()
+            'uploaded_by' => Auth::id(),
+            'is_visible' => true, // ✅ default tampil
         ]);
 
         return back()->with('success','Dokumen berhasil diunggah');
     }
 
-    // USER VIEW
-   public function userView()
-{
-    $docs = AdminDocument::latest()->get();
-    return view('user.dokumen.index', compact('docs'));
-}
-    // DOWNLOAD
+    // ✅ TOGGLE TAMPILKAN / SEMBUNYIKAN (ADMIN)
+    public function toggleVisibility($id)
+    {
+        $doc = AdminDocument::findOrFail($id);
+
+        $doc->is_visible = !$doc->is_visible;
+        $doc->save();
+
+        return back()->with('success', 'Status dokumen berhasil diubah');
+    }
+
+    // USER VIEW (hanya yang tampil)
+    public function userView()
+    {
+        $docs = AdminDocument::where('is_visible', true)->latest()->get();
+        return view('user.dokumen.index', compact('docs'));
+    }
+
+    // DOWNLOAD (kalau user tetap butuh download, route ini tetap aman)
     public function download($id)
     {
         $doc = AdminDocument::findOrFail($id);
         return Storage::disk('public')->download($doc->file_path);
     }
 }
-

@@ -36,9 +36,20 @@
     <td>{{ $doc->judul }}</td>
     <td>{{ $doc->created_at->format('d M Y') }}</td>
     <td>
-        <a href="{{ route('dokumen.download',$doc->id) }}" class="btn btn-sm btn-primary">
-            Download
-        </a>
+        <form action="{{ route('admin.dokumen.toggle', $doc->id) }}" method="POST" style="display:inline;">
+            @csrf
+            @method('PATCH')
+
+            @if($doc->is_visible)
+                <button type="submit" class="btn btn-sm btn-warning">
+                    Sembunyikan
+                </button>
+            @else
+                <button type="submit" class="btn btn-sm btn-success">
+                    Tampilkan
+                </button>
+            @endif
+        </form>
     </td>
 </tr>
 @endforeach

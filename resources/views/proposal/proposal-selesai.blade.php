@@ -43,7 +43,7 @@
         border: none;
         color: #888;
         font-size: 12px;
-        text-transform: uppercase;
+        text-transform: none; /* ✅ dulu uppercase, sekarang normal */
         letter-spacing: 1px;
         padding: 15px;
         text-align: center;
@@ -66,7 +66,7 @@
         font-size: 9px;
         color: #999;
         font-weight: 600;
-        text-transform: uppercase;
+        text-transform: none; /* ✅ dulu uppercase, sekarang normal */
     }
 
     /* Action buttons PDF */
@@ -114,7 +114,7 @@
         font-weight: 700;
         padding: 4px 10px;
         border-radius: 6px;
-        text-transform: uppercase;
+        text-transform: none; /* ✅ dulu uppercase, sekarang normal */
     }
 </style>
 

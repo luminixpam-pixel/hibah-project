@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {{-- ✅ TAMBAH biar POST fetch aman --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <title>@yield('title', 'E-Hibah')</title>
 
     {{-- Bootstrap & Icons --}}
@@ -76,7 +80,6 @@
     ]);
 
     $isReviewerMenuActive = ($routeName === 'admin.reviewer.index');
-    // ✅ Logika menu aktif untuk Riwayat Dosen
     $isRiwayatMenuActive = ($routeName === 'admin.riwayatDosen' || $routeName === 'admin.dosen.detail');
 @endphp
 
@@ -104,16 +107,16 @@
                         <i class="bi bi-upload"></i> Unggah
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        {{-- Menu untuk Pengaju dan Reviewer --}}
                         @if(in_array(Auth::user()->role, ['pengaju', 'reviewer']))
-                            {{-- Tombol untuk memicu Popup Proposal --}}
                             <li><a class="dropdown-item" href="#" id="openPopupBtn">Unggah Proposal</a></li>
                             <li><a class="dropdown-item" href="{{ route('laporan.kemajuan.index') }}">Unggah Laporan Kemajuan</a></li>
                             <li><a class="dropdown-item" href="{{ route('dokumen.user') }}">Dokumen</a></li>
                         @endif
 
-                        {{-- Menu Khusus Admin --}}
                         @if(Auth::user()->role === 'admin')
+                            {{-- ✅ TAMBAHAN: Admin juga bisa lihat halaman laporan kemajuan --}}
+                            <li><a class="dropdown-item" href="{{ route('laporan.kemajuan.index') }}">Laporan Kemajuan</a></li>
+
                             <li><a class="dropdown-item" href="{{ route('admin.dokumen.index') }}">Upload Dokumen/Template Dokumen</a></li>
                         @endif
                     </ul>
@@ -124,16 +127,16 @@
                         <i class="bi bi-bar-chart"></i> Monitoring & Data
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('proposal.index') }}">Daftar Proposal</a></li>
+                        <li><a class="dropdown-item" href="{{ route('proposal.index') }}">Daftar Monitoring Proposal</a></li>
                         @if(Auth::user()->role!=='pengaju')
-                            <li><a class="dropdown-item" href="{{ route('monitoring.proposalPerluDireview') }}">Proposal Perlu Direview</a></li>
-                            <li><a class="dropdown-item" href="{{ route('monitoring.proposalSedangDireview') }}">Proposal Sedang Direview</a></li>
+                            <li><a class="dropdown-item" href="{{ route('monitoring.proposalPerluDireview') }}">Daftar Review Proposal</a></li>
+                            <li><a class="dropdown-item" href="{{ route('monitoring.proposalSedangDireview') }}">Daftar Proposal Sedang Direview</a></li>
                         @endif
-                        <li><a class="dropdown-item" href="{{ route('monitoring.reviewSelesai') }}">Review Selesai</a></li>
-                        <li><a class="dropdown-item" href="{{ route('monitoring.proposalDisetujui') }}">Proposal Disetujui</a></li>
-                        <li><a class="dropdown-item" href="{{ route('monitoring.proposalDitolak') }}">Proposal Ditolak</a></li>
-                        <li><a class="dropdown-item" href="{{ route('monitoring.proposalDirevisi') }}">Proposal Direvisi</a></li>
-                        <li><a class="dropdown-item" href="{{ route('monitoring.hasilRevisi') }}">Hasil Revisi</a></li>
+                        <li><a class="dropdown-item" href="{{ route('monitoring.reviewSelesai') }}">Daftar Review Selesai</a></li>
+                        <li><a class="dropdown-item" href="{{ route('monitoring.proposalDisetujui') }}">Daftar Proposal Disetujui</a></li>
+                        <li><a class="dropdown-item" href="{{ route('monitoring.proposalDitolak') }}">Daftar Proposal Ditolak</a></li>
+                        <li><a class="dropdown-item" href="{{ route('monitoring.proposalDirevisi') }}">Daftar Proposal Direvisi</a></li>
+                        <li><a class="dropdown-item" href="{{ route('monitoring.hasilRevisi') }}">Hasil Revisi Proposal</a></li>
                     </ul>
                 </li>
 
@@ -149,7 +152,6 @@
                         <i class="bi bi-person-check"></i> Pilih Reviewer
                     </a>
                 </li>
-                {{-- ✅ MENU BARU: RIWAYAT DOSEN --}}
                 <li class="nav-item">
                     <a class="nav-link main-nav-link {{ $isRiwayatMenuActive ? 'main-nav-link-active' : '' }}" href="{{ route('admin.riwayatDosen') }}">
                         <i class="bi bi-person-vcard"></i> Riwayat Dosen
@@ -160,8 +162,18 @@
 
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    <a id="notifBell" class="nav-link" style="cursor:pointer;"><i class="bi bi-bell"></i></a>
+                    {{-- ✅ Bell + Badge (DIPEPETIN) --}}
+                    <a id="notifBell" class="nav-link position-relative" style="cursor:pointer;">
+                        <i class="bi bi-bell"></i>
+
+                        <span id="notifCount"
+                              class="position-absolute badge rounded-pill bg-danger"
+                              style="display:none;font-size:10px;padding:4px 6px;top:2px;right:2px;">
+                            0
+                        </span>
+                    </a>
                 </li>
+
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                         <i class="bi bi-person-circle"></i> {{ Auth::user()->name ?? 'Pengguna' }}
@@ -252,6 +264,7 @@
 
 <script>
 document.addEventListener("DOMContentLoaded",()=>{
+
     // FLASH MESSAGE
     const alertPlaceholder=document.getElementById('alertPlaceholder');
     const success=@json(session('success'));
@@ -290,28 +303,140 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     document.addEventListener("click",e=>{ if(e.target.classList.contains("remove-anggota")) e.target.parentElement.remove(); });
 
-    // NOTIFIKASI
+    // =========================
+    // NOTIFIKASI (BELL + COUNT)
+    // =========================
     const notifBell=document.getElementById("notifBell");
     const notifPopup=document.getElementById("notifPopup");
+    const notifList=document.getElementById("notifList");
+    const notifCount=document.getElementById("notifCount");
+    const markReadBtn=document.getElementById("markRead");
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    const setBadge = (count) => {
+        if (!notifCount) return;
+        if (!count || count <= 0) {
+            notifCount.style.display = "none";
+            notifCount.textContent = "0";
+            return;
+        }
+        notifCount.style.display = "inline-block";
+        notifCount.textContent = count > 99 ? "99+" : String(count);
+    };
+
+    const updateNotifCount = async () => {
+        try {
+            const res = await fetch("{{ route('notifications.count') }}", {
+                cache: "no-store",
+                credentials: "include",
+                headers: { "Accept": "application/json" }
+            });
+            const data = await res.json();
+            setBadge(parseInt(data.count || 0));
+        } catch(e) {}
+    };
+
     const loadNotifications = async () => {
         try {
-            const res = await fetch("{{ route('notifications.fetch') }}");
+            const res = await fetch("{{ route('notifications.fetch') }}", {
+                cache: "no-store",
+                credentials: "include",
+                headers: { "Accept": "application/json" }
+            });
             const data = await res.json();
-            const notifList = document.getElementById("notifList");
+
             notifList.innerHTML = data.length ? '' : '<div class="text-center py-3">Tidak ada notifikasi.</div>';
+
             data.forEach(notif => {
                 const item = document.createElement("div");
                 item.className = `notif-item ${notif.is_read ? 'read' : 'unread'}`;
                 item.innerHTML = `<div class="notif-title">${notif.title}</div><div class="small text-muted">${notif.message || ''}</div>`;
                 notifList.appendChild(item);
             });
+
+            updateNotifCount();
         } catch(e) {}
     };
+
+    updateNotifCount();
+    setInterval(updateNotifCount, 30000);
+
     if(notifBell) notifBell.addEventListener("click", () => {
         notifPopup.style.display="flex";
         loadNotifications();
     });
-    if(notifPopup) notifPopup.addEventListener("click", e => { if(e.target===notifPopup) notifPopup.style.display="none"; });
+
+    if(notifPopup) notifPopup.addEventListener("click", e => {
+        if(e.target===notifPopup) notifPopup.style.display="none";
+    });
+
+    if(markReadBtn){
+        markReadBtn.addEventListener("click", async () => {
+            try {
+                await fetch("{{ route('notifications.markAllAsRead') }}", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                        "X-CSRF-TOKEN": csrfToken
+                    },
+                    body: JSON.stringify({})
+                });
+
+                loadNotifications();
+                updateNotifCount();
+            } catch(e) {}
+        });
+    }
+
+    // ==========================================
+    // ✅ NOTIF TENGGAT MUNCUL SAAT LOGIN
+    // ==========================================
+    const showDeadlinePopup = (title, message) => {
+        if (!alertPlaceholder) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `
+            <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert" style="min-width:320px;">
+                <div class="fw-bold">${title}</div>
+                <div class="small">${message || ''}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        alertPlaceholder.appendChild(wrapper);
+
+        setTimeout(() => {
+            try {
+                const alert = bootstrap.Alert.getOrCreateInstance(wrapper.querySelector('.alert'));
+                alert.close();
+            } catch(e) {}
+        }, 8000);
+    };
+
+    const runDeadlineCheckOnce = async () => {
+        try {
+            if (sessionStorage.getItem('deadline_check_done') === '1') return;
+            sessionStorage.setItem('deadline_check_done', '1');
+
+            const res = await fetch("{{ route('notifications.deadlineCheck') }}", {
+                cache: "no-store",
+                credentials: "include",
+                headers: { "Accept": "application/json" }
+            });
+
+            const data = await res.json();
+            const popups = data.popups || [];
+
+            if (popups.length > 0) {
+                popups.forEach(p => showDeadlinePopup(p.title, p.message));
+                updateNotifCount();
+            }
+        } catch(e) {}
+    };
+
+    runDeadlineCheckOnce();
 
     // CALENDAR
     const calendarEl=document.getElementById('calendar');

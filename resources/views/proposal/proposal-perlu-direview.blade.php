@@ -11,7 +11,7 @@
         background:#f8fafc !important;
         font-weight:600;
         font-size: 11px;
-        text-transform: uppercase;
+        text-transform: none; /* ✅ dulu uppercase, sekarang normal */
         letter-spacing: 0.5px;
         color: #475569;
         padding: 12px 15px !important;
@@ -20,7 +20,7 @@
     .table td { vertical-align: middle; padding: 15px !important; }
 
     /* Status Badges */
-    .status-badge { padding: 4px 10px; border-radius: 50px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .status-badge { padding: 4px 10px; border-radius: 50px; font-size: 10px; font-weight: 700; text-transform: none; } /* ✅ dulu uppercase, sekarang normal */
     .bg-ongoing { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
     .bg-waiting { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
     .bg-finish { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
@@ -68,7 +68,7 @@
             <h4 class="page-title mb-1">Daftar Review Proposal</h4>
             <p class="page-subtitle mb-0">
                 @if(auth()->user()->role === 'admin')
-                    Manajemen plotting reviewer dan pemantauan masa penilaian.
+                    Manajemen pemilihan reviewer dan pemantauan masa penilaian.
                 @else
                     Daftar penugasan review proposal yang harus Anda nilai.
                 @endif
@@ -127,7 +127,7 @@
                                             @endforeach
                                         </div>
                                     @else
-                                        <div class="mb-2"><span class="status-badge bg-waiting">Menunggu Plotting</span></div>
+                                        <div class="mb-2"><span class="status-badge bg-waiting">Menunggu Pemilihan</span></div>
                                     @endif
 
                                     <form id="form-{{ $proposal->id }}" action="{{ route('proposal.assignReviewer', $proposal->id) }}"
@@ -148,7 +148,7 @@
                                             <input type="datetime-local" name="review_deadline" class="form-control form-control-sm"
                                                    value="{{ $dbDeadline ? $dbDeadline->format('Y-m-d\TH:i') : '' }}" required>
                                         </div>
-                                        <button type="submit" class="btn btn-primary btn-sm w-100 shadow-sm fw-bold">Simpan Plotting</button>
+                                        <button type="submit" class="btn btn-primary btn-sm w-100 shadow-sm fw-bold">Simpan</button>
                                     </form>
                                 @else
                                     {{-- Info untuk Reviewer --}}
@@ -190,8 +190,16 @@
                                         @if($isOverdue)
                                             <span class="badge bg-danger w-100" style="font-size: 9px;">WAKTU HABIS</span>
                                         @else
+                                            @php
+                                                $diffText = now()->diffForHumans($dbDeadline, true);
+                                                $diffText = str_replace(
+                                                    [' seconds', ' second', ' minutes', ' minute', ' hours', ' hour', ' days', ' day', ' weeks', ' week', ' months', ' month', ' years', ' year'],
+                                                    [' detik',   ' detik',  ' menit',   ' menit',  ' jam',   ' jam',  ' hari', ' hari',' minggu',' minggu',' bulan',  ' bulan', ' tahun',' tahun'],
+                                                    $diffText
+                                                );
+                                            @endphp
                                             <span class="badge bg-success w-100" style="font-size: 9px;">
-                                                SISA: {{ now()->diffForHumans($dbDeadline, true) }}
+                                                Tenggat {{ $diffText }} lagi
                                             </span>
                                         @endif
                                     </div>

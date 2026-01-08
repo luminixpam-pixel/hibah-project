@@ -76,6 +76,11 @@ Route::middleware(['auth'])->group(function () {
     /* --- NOTIFIKASI --- */
     Route::controller(NotificationController::class)->group(function () {
         Route::get('/notifications/fetch', 'fetch')->name('notifications.fetch');
+        Route::get('/notifications/count', 'count')->name('notifications.count');
+
+        // ✅ popup login 8 detik (deadline reminder)
+        Route::get('/notifications/deadline-check', 'deadlineCheck')->name('notifications.deadlineCheck');
+
         Route::post('/notifications/mark-all-read', 'markAllAsRead')->name('notifications.markAllAsRead');
     });
 
@@ -85,21 +90,17 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware(['role:admin'])->group(function () {
-        // Produktivitas & Riwayat Dosen
         Route::get('/riwayat-dosen', [DashboardController::class, 'riwayatDosen'])->name('admin.riwayatDosen');
         Route::get('/riwayat-dosen/{id}', [DashboardController::class, 'detailDosen'])->name('admin.dosen.detail');
 
-        // Admin Management
         Route::get('/timeline', fn() => view('timeline'))->name('timeline');
         Route::get('/monitoring-data', fn() => view('monitoring.index'))->name('monitoring.data');
         Route::get('/admin/hasil-review', [AdminController::class, 'hasilReview'])->name('admin.hasil-review');
         Route::post('/monitoring-kalender/periode', [CalendarController::class, 'updatePeriod'])->name('monitoring.kalender.periode');
 
-        // Proposal Admin Control
         Route::put('/proposal/{proposal}/approve', [ProposalController::class, 'approveProposal'])->name('proposal.approve');
         Route::put('/proposal/{proposal}/reject', [ProposalController::class, 'rejectProposal'])->name('proposal.reject');
 
-        // Reviewer Management
         Route::controller(ReviewerController::class)->group(function () {
             Route::get('/admin/reviewer', 'index')->name('admin.reviewer.index');
             Route::post('/admin/reviewer/{user}', 'setReviewer')->name('admin.reviewer.set');
@@ -109,9 +110,13 @@ Route::middleware(['auth'])->group(function () {
 
         Route::post('/proposal/{proposal}/assign-reviewer', [ProposalReviewerController::class, 'assign'])->name('proposal.assignReviewer');
 
-        // Admin Documents
+        // ✅ DOKUMEN ADMIN
         Route::get('/admin/dokumen', [AdminDocumentController::class, 'index'])->name('admin.dokumen.index');
         Route::post('/admin/dokumen', [AdminDocumentController::class, 'store'])->name('admin.dokumen.store');
+
+        // ✅ TOGGLE TAMPILKAN / SEMBUNYIKAN (NAME HARUS SAMA DENGAN BLADE)
+        Route::patch('/admin/dokumen/{id}/toggle-visibility', [AdminDocumentController::class, 'toggleVisibility'])
+            ->name('admin.dokumen.toggle');
     });
 
     /*
@@ -120,9 +125,10 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware(['role:pengaju,reviewer'])->group(function () {
-    Route::get('/proposal/create', [ProposalController::class, 'create'])->name('proposal.create');
-    Route::post('/proposal/store', [ProposalController::class, 'store'])->name('proposal.store');
-});
+        Route::get('/proposal/create', [ProposalController::class, 'create'])->name('proposal.create');
+        Route::post('/proposal/store', [ProposalController::class, 'store'])->name('proposal.store');
+    });
+
     /*
     |--------------------------------------------------------------------------
     | ROLE: REVIEWER / ADMIN + REVIEWER
@@ -134,14 +140,10 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::middleware(['role:reviewer'])->group(function () {
-    Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])->name('reviewer.isi-review');
+        Route::get('/reviewer/isi-review/{id}', [ReviewerController::class, 'isiReview'])->name('reviewer.isi-review');
+        Route::post('/reviewer/isi-review/{id}', [ReviewerController::class, 'submitReview'])->name('review.simpan');
+    });
 
-    // Gunakan nama 'review.simpan' agar cocok dengan error yang tadi muncul
-    Route::post('/reviewer/isi-review/{id}', [ReviewerController::class, 'submitReview'])->name('review.simpan');
+    Route::patch('/proposal/{id}/set-review', [ProposalController::class, 'setReview'])->name('proposal.set-review');
+    Route::get('/review/{review}/pdf', [ProposalController::class, 'downloadReviewPdf'])->name('review.pdf');
 });
-   Route::patch('/proposal/{id}/set-review', [ProposalController::class, 'setReview'])->name('proposal.set-review');
-
-   Route::get('/review/{review}/pdf', [ProposalController::class, 'downloadReviewPdf'])->name('review.pdf');
-});
-
-
