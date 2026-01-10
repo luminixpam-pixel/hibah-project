@@ -109,40 +109,60 @@
     @endif
 
     {{-- ===================== MONITORING CARDS ==================== --}}
-    @php
+@php
+    // Daftar lengkap semua menu
+    $allMenus = [
+        'monitoring'     => ['title'=>'Daftar Monitoring Proposal','count'=>$daftarProposalCount ?? 0,'route'=>'monitoring.proposalDikirim','icon'=>'bi-file-earmark-text'],
+        'perlu_review'   => ['title'=>'Daftar Review Proposal','count'=>$perluDireviewCount ?? 0,'route'=>'monitoring.proposalPerluDireview','icon'=>'bi-envelope-paper'],
+        'sedang_review'  => ['title'=>'Daftar Proposal Sedang Direview','count'=>$sedangDireviewCount ?? 0,'route'=>'monitoring.proposalSedangDireview','icon'=>'bi-arrow-repeat'],
+        'review_selesai' => ['title'=>'Daftar Review Selesai','count'=>$reviewSelesaiCount ?? 0,'route'=>'monitoring.reviewSelesai','icon'=>'bi-clipboard-check'],
+        'disetujui'      => ['title'=>'Daftar Proposal Disetujui','count'=>$disetujuiCount ?? 0,'route'=>'monitoring.proposalDisetujui','icon'=>'bi-check-circle'],
+        'ditolak'        => ['title'=>'Daftar Proposal Ditolak','count'=>$ditolakCount ?? 0,'route'=>'monitoring.proposalDitolak','icon'=>'bi-x-circle'],
+        'direvisi'       => ['title'=>'Daftar Proposal Direvisi','count'=>$direvisiDisplay ?? 0,'route'=>'monitoring.proposalDirevisi','icon'=>'bi-pencil-square'],
+        'hasil_revisi'   => ['title'=>'Hasil Revisi Proposal','count'=>$hasilRevisiCount ?? 0,'route'=>'monitoring.hasilRevisi','icon'=>'bi-send-check'],
+    ];
+
+    $dashboardItems = [];
+
+   if($role === 'admin' || $role === 'reviewer') {
+        $dashboardItems = $allMenus;
+    }
+
+    elseif($role === 'pengaju') {
+        // Pengaju (User) TIDAK melihat "Daftar Review" & "Sedang Direview"
         $dashboardItems = [
-            ['title'=>'Daftar Monitoring Proposal','count'=>$daftarProposalCount ?? 0,'route'=>'monitoring.proposalDikirim','icon'=>'bi-file-earmark-text'],
-            ['title'=>'Daftar Review Proposal','count'=>$perluDireviewCount ?? 0,'route'=>'monitoring.proposalPerluDireview','icon'=>'bi-envelope-paper'],
-            ['title'=>'Daftar Proposal Sedang Direview','count'=>$sedangDireviewCount ?? 0,'route'=>'monitoring.proposalSedangDireview','icon'=>'bi-arrow-repeat'],
-            ['title'=>'Daftar Review Selesai','count'=>$reviewSelesaiCount ?? 0,'route'=>'monitoring.reviewSelesai','icon'=>'bi-clipboard-check'],
-            ['title'=>'Daftar Proposal Disetujui','count'=>$disetujuiCount ?? 0,'route'=>'monitoring.proposalDisetujui','icon'=>'bi-check-circle'],
-            ['title'=>'Daftar Proposal Ditolak','count'=>$ditolakCount ?? 0,'route'=>'monitoring.proposalDitolak','icon'=>'bi-x-circle'],
-            ['title'=>'Daftar Proposal Direvisi','count'=>$direvisiDisplay ?? 0,'route'=>'monitoring.proposalDirevisi','icon'=>'bi-pencil-square'],
-            ['title'=>'Hasil Revisi Proposal','count'=>$hasilRevisiCount ?? 0,'route'=>'monitoring.hasilRevisi','icon'=>'bi-send-check'],
+            $allMenus['monitoring'],
+            $allMenus['review_selesai'],
+            $allMenus['disetujui'],
+            $allMenus['ditolak'],
+            $allMenus['direvisi'],
+            $allMenus['hasil_revisi']
         ];
+    }
+@endphp
 
-        if($role === 'pengaju'){
-            $dashboardItems = array_filter($dashboardItems, fn($item) => !in_array($item['title'], ['Butuh Review', 'Sedang Direview']));
-        }
-    @endphp
+{{-- Menentukan alignment: Jika item sedikit, kita buat ke tengah (center) --}}
+@php
+    $rowAlignment = (count($dashboardItems) < 4) ? 'justify-content-center' : '';
+@endphp
 
-    <div class="row g-3 mb-4">
-        @foreach($dashboardItems as $item)
-            <div class="col-6 col-md-3">
-                <a href="{{ route($item['route']) }}" class="text-decoration-none dashboard-link">
-                    <div class="card border-0 shadow-sm p-3 h-100 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="icon-box bg-primary-subtle p-2 rounded">
-                                <i class="bi {{ $item['icon'] }} text-primary fs-5"></i>
-                            </div>
-                            <h4 class="fw-bold mb-0 text-dark">{{ $item['count'] }}</h4>
+<div class="row g-3 mb-4 {{ $rowAlignment }}">
+    @foreach($dashboardItems as $item)
+        <div class="col-6 col-md-3">
+            <a href="{{ route($item['route']) }}" class="text-decoration-none dashboard-link">
+                <div class="card border-0 shadow-sm p-3 h-100 bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="icon-box bg-primary-subtle p-2 rounded">
+                            <i class="bi {{ $item['icon'] }} text-primary fs-5"></i>
                         </div>
-                        <h6 class="mb-0 text-muted small fw-bold text-uppercase" style="font-size: 10px;">{{ $item['title'] }}</h6>
+                        <h4 class="fw-bold mb-0 text-dark">{{ $item['count'] }}</h4>
                     </div>
-                </a>
-            </div>
-        @endforeach
-    </div>
+                    <h6 class="mb-0 text-muted small fw-bold text-uppercase" style="font-size: 10px;">{{ $item['title'] }}</h6>
+                </div>
+            </a>
+        </div>
+    @endforeach
+</div>
 
     {{-- ===================== REKAP FAKULTAS (Hanya Admin) ==================== --}}
     @if($role === 'admin' && isset($rekapFakultas))
@@ -164,7 +184,7 @@
                 <tbody>
                     @forelse($rekapFakultas as $rekap)
                     <tr>
-                        <td class="ps-4">
+                       <td class="ps-4">
                             <div class="fw-bold text-dark">{{ $rekap->fakultas ?? 'N/A' }}</div>
                         </td>
                         <td class="text-center">
@@ -174,7 +194,7 @@
                             <span class="badge bg-success-subtle text-success border border-success-subtle px-3">{{ $rekap->total_disetujui }}</span>
                         </td>
                         <td class="text-end pe-4 fw-bold text-primary">
-                            {{ number_format($rekap->total_biaya ?? 0, 0, ',', '.') }}
+                            Rp {{ number_format($rekap->total_biaya ?? 0, 0, ',', '.') }}
                         </td>
                     </tr>
                     @empty
@@ -201,11 +221,20 @@
                         <label class="text-muted small fw-bold text-uppercase d-block" style="font-size: 10px;">Nama Lengkap</label>
                         <span class="text-dark fw-medium">{{ $user->name ?? '-' }}</span>
                     </div>
-                    <div class="col-sm-6">
-                        <label class="text-muted small fw-bold text-uppercase d-block" style="font-size: 10px;">Fakultas / Unit</label>
-                        <span class="text-dark fw-medium">{{ $user->fakultas ?? '-' }}</span>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Fakultas / Unit</label>
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-light"><i class="bi bi-building"></i></span>
+                        <input type="text"
+                            class="form-control bg-light"
+                            value="{{ $user->fakultas ?? 'Belum diatur di profil' }}"
+                            readonly>
                     </div>
-                    <div class="col-sm-6">
+                    <input type="hidden" name="fakultas_prodi" value="{{ $user->fakultas }}">
+                    <small class="text-muted" style="font-size: 0.7rem;">*Data diambil otomatis dari profil Anda</small>
+                </div>
+
+                     <div class="col-sm-6">
                         <label class="text-muted small fw-bold text-uppercase d-block" style="font-size: 10px;">Hak Akses</label>
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ strtoupper($role) }}</span>
                     </div>

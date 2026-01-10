@@ -34,9 +34,16 @@
         </div>
 
         <div class="mb-3">
-            <label>Fakultas</label>
-            <input type="text" name="fakultas" class="form-control"
-                   value="{{ $user->fakultas }}">
+            <label class="fw-bold text-secondary small">Fakultas</label>
+            <select name="fakultas" class="form-select shadow-sm" required>
+                <option value="" disabled>-- Pilih Fakultas --</option>
+                @foreach($list_fakultas as $f)
+                    <option value="{{ $f->nama_fakultas }}"
+                        {{ $user->fakultas == $f->nama_fakultas ? 'selected' : '' }}>
+                        {{ $f->nama_fakultas }}
+                    </option>
+                @endforeach
+            </select>
         </div>
 
         <div class="mb-3">

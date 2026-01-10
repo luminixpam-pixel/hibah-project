@@ -185,32 +185,40 @@
                         </td>
 
                         {{-- STATUS PENDANAAN --}}
-                        <td>
+                         <td>
+                            {{-- 1. Definisikan variabel di paling atas baris <td> --}}
+                            @php
+                                $isDone = in_array($proposal->status, ['Disetujui', 'Ditolak', 'Direvisi']);
+                            @endphp
+
                             @if(Auth::user()->role === 'admin')
                                 <form action="{{ route('proposal.keputusan', $proposal->id) }}" method="POST">
-                                    @csrf @method('PATCH')
+                                    @csrf
+                                    @method('PATCH')
                                     <select name="status_pendanaan"
-                                            class="form-select select-pendanaan shadow-sm border-{{ $isDone ? 'success' : 'primary' }}"
+                                            class="form-select shadow-sm border-{{ $proposal->status == 'Disetujui' ? 'success' : ($proposal->status == 'Ditolak' ? 'danger' : 'primary') }}"
                                             onchange="if(confirm('Simpan keputusan ini?')) this.form.submit()">
-                                        <option value="" disabled {{ !$isDone ? 'selected' : '' }}>-- Pilih --</option>
-                                        <option value="Disetujui" {{ $proposal->status_pendanaan == 'Disetujui' ? 'selected' : '' }}>Disetujui</option>
-                                        <option value="Ditolak" {{ $proposal->status_pendanaan == 'Ditolak' ? 'selected' : '' }}>Ditolak</option>
-                                        <option value="Direvisi" {{ $proposal->status_pendanaan == 'Direvisi' ? 'selected' : '' }}>Direvisi</option>
+
+                                        <option value="" disabled {{ !$isDone ? 'selected' : '' }}>-- Pilih Keputusan --</option>
+                                        <option value="Disetujui" {{ $proposal->status == 'Disetujui' ? 'selected' : '' }}>Disetujui</option>
+                                        <option value="Ditolak" {{ $proposal->status == 'Ditolak' ? 'selected' : '' }}>Ditolak</option>
+                                        <option value="Direvisi" {{ $proposal->status == 'Direvisi' ? 'selected' : '' }}>Direvisi</option>
                                     </select>
                                 </form>
                             @else
+                                {{-- Tampilan untuk User --}}
                                 <div class="text-center">
-                                    <span class="badge {{ $isDone ? 'bg-success' : 'bg-secondary' }} p-2 shadow-sm" style="border-radius: 8px;">
-                                        {{ $proposal->status_pendanaan ?? 'PROSES' }}
+                                    <span class="badge {{ $isDone ? ($proposal->status == 'Disetujui' ? 'bg-success' : 'bg-danger') : 'bg-secondary' }} p-2 shadow-sm">
+                                        {{ $proposal->status ?? 'PROSES' }}
                                     </span>
                                 </div>
                             @endif
                         </td>
 
                         {{-- BERKAS PDF --}}
-                        <td>
+                       <td>
                             @foreach($proposalReviews as $rev)
-                                <a href="{{ route('review.pdf', $rev->id) }}" class="btn-pdf shadow-sm">
+                                <a href="{{ route('review.pdf', $rev->id) }}" class="btn-pdf shadow-sm" target="_blank">
                                     <i class="bi bi-file-earmark-pdf-fill"></i> PDF Rev {{ $loop->iteration }}
                                 </a>
                             @endforeach

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Hasil Penilaian Proposal</title>
+    <title>asil Penilaian Proposal</title>
 
     <style>
         body {

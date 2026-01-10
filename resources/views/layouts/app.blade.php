@@ -106,21 +106,25 @@
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                         <i class="bi bi-upload"></i> Unggah
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
+                   <ul class="dropdown-menu dropdown-menu-end">
                         @if(in_array(Auth::user()->role, ['pengaju', 'reviewer']))
                             <li><a class="dropdown-item" href="#" id="openPopupBtn">Unggah Proposal</a></li>
                             <li><a class="dropdown-item" href="{{ route('laporan.kemajuan.index') }}">Unggah Laporan Kemajuan</a></li>
-                            <li><a class="dropdown-item" href="{{ route('dokumen.user') }}">Dokumen</a></li>
+                            {{-- Menu Baru untuk Pengguna --}}
+                            <li><a class="dropdown-item" href="{{ route('laporan.akhir.index') }}">Unggah Laporan Akhir</a></li>
                         @endif
 
                         @if(Auth::user()->role === 'admin')
-                            {{-- ✅ TAMBAHAN: Admin juga bisa lihat halaman laporan kemajuan --}}
-                            <li><a class="dropdown-item" href="{{ route('laporan.kemajuan.index') }}">Laporan Kemajuan</a></li>
+                            {{-- ✅ Admin: Monitoring Laporan --}}
+                            <li><a class="dropdown-item" href="{{ route('laporan.kemajuan.index') }}">Monitoring Laporan Kemajuan</a></li>
+                            {{-- Menu Baru untuk Admin --}}
+                            <li><a class="dropdown-item" href="{{ route('laporan.akhir.index') }}">Monitoring Laporan Akhir</a></li>
 
+                            <hr class="dropdown-divider">
                             <li><a class="dropdown-item" href="{{ route('admin.dokumen.index') }}">Upload Dokumen/Template Dokumen</a></li>
                         @endif
                     </ul>
-                </li>
+                                    </li>
 
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle main-nav-link {{ $isMonitoringMenuActive?'main-nav-link-active':'' }}" href="#" data-bs-toggle="dropdown">
@@ -198,42 +202,164 @@
 </div>
 
 {{-- Popup Proposal --}}
-@if(in_array(Auth::user()->role, ['pengaju', 'reviewer']))
+@if(Auth::check() && in_array(Auth::user()->role, ['pengaju', 'reviewer']))
 <div id="proposalPopup" class="popup-overlay">
     <div class="popup-content">
         <span class="close-popup" id="closePopupBtn">&times;</span>
-        <form action="{{ route('proposal.store') }}" method="POST" enctype="multipart/form-data">
+        <h5 class="fw-bold mb-3">Form Pengajuan Proposal</h5>
+
+        {{-- HANYA SATU TAG FORM DI SINI --}}
+        <form action="{{ route('proposal.store') }}" method="POST" enctype="multipart/form-data" id="mainProposalForm">
             @csrf
+
             <div class="mb-3">
-                <label class="form-label">Nama Ketua</label>
-                <input type="text" name="nama_ketua" class="form-control" required>
+                <label class="form-label small fw-bold">Nama Ketua</label>
+                <input type="text" name="nama_ketua" class="form-control" list="dosenList" required>
             </div>
+
             <div class="mb-3">
-                <label class="form-label">Anggota</label>
+                <label class="form-label small fw-bold">Anggota</label>
                 <div id="anggota-container">
-                    <div class="d-flex gap-2 mb-2 anggota-row">
-                        <input type="text" name="anggota[]" class="form-control">
+                    <div class="d-flex gap-2 mb-2">
+                        <input type="text" name="anggota[]" class="form-control" list="dosenList" placeholder="Ketik Nama Anggota...">
                     </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-primary mt-2" id="addAnggotaBtn">+ Tambah Anggota</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addAnggotaBtn">
+                    <i class="bi bi-plus"></i> Tambah Anggota
+                </button>
             </div>
+
             <div class="mb-3">
-                <label class="form-label">Biaya (Rp)</label>
-                <input type="number" name="biaya" class="form-control" placeholder="Contoh: 5000000">
+                <label class="form-label small fw-bold">Fakultas / Prodi</label>
+               <select name="fakultas_prodi" class="form-select" required>
+                    <option value="" selected disabled>-- Pilih Fakultas --</option>
+                    @isset($list_fakultas)
+                        @foreach($list_fakultas as $fakultas)
+                            {{-- Ganti $fakultas->nama menjadi $fakultas->nama_fakultas --}}
+                            <option value="{{ $fakultas->id }}">{{ $fakultas->nama_fakultas }}</option>
+                        @endforeach
+                    @endisset
+                </select>
             </div>
+
             <div class="mb-3">
-                <label class="form-label">Judul Proposal</label>
-                <input type="text" name="judul" class="form-control">
+                <label class="form-label small fw-bold text-secondary">Estimasi Biaya</label>
+                <div class="input-group shadow-sm">
+                    <span class="input-group-text bg-light fw-bold text-success">Rp</span>
+                    <input type="text" id="biaya_display" class="form-control" placeholder="0" required>
+                    <input type="hidden" name="biaya" id="biaya_hidden">
+                </div>
             </div>
+
             <div class="mb-3">
-                <label class="form-label">File Proposal</label>
-                <input type="file" name="file" class="form-control" accept=".pdf,.doc,.docx">
+                <label class="form-label small fw-bold">Judul Proposal</label>
+                <input type="text" name="judul" class="form-control" required>
             </div>
-            <button class="btn btn-success w-100" type="submit">Kirim Proposal</button>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold">File Proposal (PDF/DOCX)</label>
+                <input type="file" name="file" class="form-control" accept=".pdf,.doc,.docx" required>
+            </div>
+
+            <button class="btn btn-success w-100 fw-bold py-2" type="submit" id="submitBtn">Kirim Proposal</button>
         </form>
     </div>
 </div>
 @endif
+<datalist id="dosenList">
+    @isset($all_dosen)
+        @foreach($all_dosen as $dosen)
+            <option value="{{ $dosen->name }}">
+        @endforeach
+    @endisset
+</datalist>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. LOGIKA FORMAT RUPIAH (HANYA SATU SCRIPT)
+ // Gunakan versi ini saja untuk Biaya:
+const biayaDisplay = document.getElementById('biaya_display');
+const biayaHidden = document.getElementById('biaya_hidden');
+
+if (biayaDisplay) {
+    biayaDisplay.addEventListener('input', function(e) {
+        let value = this.value.replace(/[^0-9]/g, '');
+        if (biayaHidden) biayaHidden.value = value;
+
+        if (value) {
+            const formatted = new Intl.NumberFormat('id-ID').format(value);
+            this.value = 'Rp ' + formatted;
+        } else {
+            this.value = '';
+        }
+    });
+}
+
+    // 2. LOGIKA TAMBAH/HAPUS ANGGOTA
+    const addBtn = document.getElementById('addAnggotaBtn');
+    const container = document.getElementById('anggota-container');
+
+        if (addBtn && container) {
+            addBtn.addEventListener('click', function() {
+                const count = container.querySelectorAll('input').length + 1;
+                const div = document.createElement('div');
+                div.className = 'd-flex gap-2 mb-2';
+                div.innerHTML = `
+                    <input type="text" name="anggota[]" class="form-control"
+                        list="dosenList" placeholder="Nama Anggota ${count}">
+                    <button type="button" class="btn btn-danger btn-sm remove-anggota">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+});
+
+// Script untuk mendeteksi pilihan dari datalist
+document.querySelector('input[name="nama_ketua"]').addEventListener('input', function(e) {
+    const val = e.target.value;
+    const options = document.getElementById('dosenList').childNodes;
+
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].value === val) {
+            console.log("Dosen terpilih: " + val);
+            // Anda bisa menambahkan logika di sini untuk auto-fill
+            // jika datalist menyimpan atribut tambahan seperti NIDN
+            break;
+        }
+    }
+});
+</script>
+
+
+<script>
+    const biayaDisplay = document.getElementById('biaya_display');
+    const biayaHidden = document.getElementById('biaya_hidden');
+
+    biayaDisplay.addEventListener('keyup', function(e) {
+        // Ambil value dan hapus semua karakter selain angka
+        let numberString = this.value.replace(/[^,\d]/g, '').toString();
+        let split = numberString.split(',');
+        let sisa = split[0].length % 3;
+        let rupiah = split[0].substr(0, sisa);
+        let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+        if (ribuan) {
+            let separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
+        }
+
+        rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+
+        // Tampilkan format rupiah di input display
+        this.value = 'Rp ' + rupiah;
+
+        // Simpan angka murni ke input hidden untuk dikirim ke Controller
+        biayaHidden.value = numberString.replace(/\./g, '');
+
+    });
+</script>
 
 {{-- Notifikasi --}}
 <div id="notifPopup" class="notif-popup-overlay">

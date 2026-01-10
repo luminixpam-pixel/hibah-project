@@ -5,8 +5,9 @@ use App\Http\Controllers\{
     AuthController, DashboardController, ProposalController,
     ReviewerController, AdminController, NotificationController,
     CalendarController, ProposalReviewerController, LaporanKemajuanController,
-    ProfileController, DokumenResmiController, AdminDocumentController
+    ProfileController, DokumenResmiController, AdminDocumentController, TemplateController, LaporanAkhirController
 };
+
 
 /*
 |--------------------------------------------------------------------------
@@ -146,4 +147,28 @@ Route::middleware(['auth'])->group(function () {
 
     Route::patch('/proposal/{id}/set-review', [ProposalController::class, 'setReview'])->name('proposal.set-review');
     Route::get('/review/{review}/pdf', [ProposalController::class, 'downloadReviewPdf'])->name('review.pdf');
+
+    Route::get('/cek-kuota-dosen', [ProposalController::class, 'cekKuota'])->name('dosen.cek-kuota');
+
+    Route::patch('/proposal/{id}/setujui', [ProposalController::class, 'setujui'])->name('proposal.setujui');
+
+
+
+// Grouping untuk Admin
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::post('/admin/template/upload', [TemplateController::class, 'store'])->name('admin.template.upload');
+    Route::delete('/admin/template/{id}', [TemplateController::class, 'destroy'])->name('admin.template.destroy');
+});
+Route::middleware(['auth'])->group(function () {
+
+    // Route Laporan Akhir
+    Route::get('/laporan-akhir', [LaporanAkhirController::class, 'index'])->name('laporan.akhir.index');
+    Route::post('/laporan-akhir/store', [LaporanAkhirController::class, 'store'])->name('laporan.akhir.store');
+    Route::get('/laporan-akhir/download/{id}', [LaporanAkhirController::class, 'download'])->name('laporan.akhir.download');
+
+    // Route khusus Admin untuk Upload Template (Jika belum ada)
+    Route::middleware(['role:admin'])->group(function () {
+        Route::post('/admin/template/upload', [TemplateController::class, 'store'])->name('admin.template.upload');
+    });
+});
 });

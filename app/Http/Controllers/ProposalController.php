@@ -8,10 +8,12 @@ use App\Models\Proposal;
 use App\Models\User;
 use App\Models\Review;
 use App\Models\ActivityLog;
+use App\Models\Fakultas;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Helpers\NotificationHelper;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class ProposalController extends Controller
 {
@@ -29,98 +31,137 @@ class ProposalController extends Controller
     }
 
     /**
-     * Menampilkan daftar proposal milik user (Pengaju/Reviewer) atau semua (Admin)
+     * Menampilkan daftar proposal & Dropdown Fakultas
      */
-    public function index(Request $request)
-    {
-        $tahun = $request->get('tahun', date('Y'));
-        $query = Proposal::whereYear('created_at', $tahun);
+ public function index(Request $request)
+{
+    // 1. Ambil data dasar
+    $tahun = $request->get('tahun', date('Y'));
+    $user = auth()->user();
+    $role = $user->role; // Definisikan di awal agar bisa dipakai di bawah
 
-        // Admin melihat semua data
-        if (auth()->user()->role === 'admin') {
-            $proposals = $query->latest()->get();
-        }
-        // Pengaju & Reviewer hanya melihat proposal yang mereka buat sendiri
-        else {
-            $proposals = $query->where('user_id', auth()->id())->latest()->get();
-        }
+    // 2. Ambil data pendukung untuk Modal
+    $list_fakultas = Fakultas::all();
+    $all_dosen = User::where('role', 'pengaju')->get();
 
-        $role = auth()->user()->role;
-        return view('proposal.daftar_proposal', compact('proposals', 'tahun', 'role'));
+    // 3. Bangun Query
+    $query = Proposal::with(['fakultas', 'user'])
+        ->whereYear('created_at', $tahun);
+
+   // ✅ LOGIKA FILTER DIPERBARUI:
+    // Admin melihat semua. Pengaju & Reviewer hanya melihat milik sendiri.
+    if ($role === 'pengaju' || $role === 'reviewer') {
+        $query->where('user_id', $user->id);
     }
 
-    public function create()
-    {
-        return redirect()->route('proposal.index');
-    }
+    $proposals = $query->latest()->get();
 
-    /**
-     * Proses simpan proposal (Bisa dilakukan Pengaju & Reviewer)
+    return view('proposal.daftar_proposal', compact(
+        'proposals',
+        'tahun',
+        'role',
+        'list_fakultas',
+        'all_dosen'
+    ));
+    $semuaAnggotaInput = $request->anggota ?? [];
+}
+
+/**
+     * Menyimpan proposal baru dengan Validasi Kuota 3 Proposal
      */
     public function store(Request $request)
     {
-        // Proteksi Role
+        // 1. Proteksi Role
         if (!in_array(auth()->user()->role, ['pengaju', 'reviewer'])) {
             abort(403, 'Anda tidak memiliki izin untuk mengunggah proposal.');
         }
 
+        $user = auth()->user();
+
+        // 2. Kumpulkan semua nama yang terlibat (Ketua + Anggota)
+        $anggotaInput = $request->input('anggota', []);
+        $semuaPeserta = array_filter($anggotaInput, fn($v) => trim((string)$v) !== '');
+        $semuaPeserta[] = $request->nama_ketua;
+        $semuaPeserta = array_unique($semuaPeserta);
+
+        // 3. Cek Batas Maksimal 3 Proposal untuk SETIAP orang yang terlibat
+      $ketua = $request->nama_ketua;
+        $anggotaInput = $request->anggota ?? [];
+        $semuaDosenTerlibat = array_merge([$ketua], $anggotaInput);
+
+        foreach ($semuaDosenTerlibat as $nama) {
+            if (!$nama) continue;
+
+            $countKetua = Proposal::where('nama_ketua', $nama)->count();
+            $countAnggota = Proposal::whereJsonContains('anggota', $nama)->count();
+            $totalPartisipasi = $countKetua + $countAnggota;
+
+            if ($totalPartisipasi >= 3) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', "Dosen {$nama} sudah terdaftar di 3 proposal. Batas maksimal adalah 3.");
+            }
+        }
+
+        // 4. Validasi Form
         $request->validate([
-            'judul'      => 'required|string|max:255',
-            'nama_ketua' => 'required|string|max:255',
-            'biaya'      => 'nullable|numeric',
-            'anggota'    => 'nullable|array',
-            'file'       => 'required|file|mimes:pdf,doc,docx|max:102400',
+            'judul'           => 'required|string|max:255',
+            'nama_ketua'      => 'required|string|max:255',
+            'fakultas_prodi'  => 'required|exists:fakultas,id',
+            'biaya'           => 'required',
+            'anggota'         => 'nullable|array',
+            'file'            => 'required|file|mimes:pdf,doc,docx|max:10240', // Max 10MB
         ]);
 
-        // Olah data anggota (Array ke JSON)
-        $anggota = $request->input('anggota', []);
-        $anggota = is_array($anggota) ? array_values(array_filter($anggota, fn($v) => trim((string)$v) !== '')) : [];
-        $anggotaJson = !empty($anggota) ? json_encode($anggota, JSON_UNESCAPED_UNICODE) : null;
+        // 5. Olah Data
+        $biayaClean = preg_replace('/[^0-9]/', '', $request->biaya);
+        $anggotaFinal = is_array($anggotaInput) ? array_values(array_filter($anggotaInput)) : [];
 
         try {
+            // Upload File
             $extension = $request->file('file')->getClientOriginalExtension();
             $cleanName = preg_replace('/[^A-Za-z0-9\-]/', '', $request->judul);
-            $finalName = $cleanName . '_' . time() . '.' . $extension;
-
+            $finalName = substr($cleanName, 0, 50) . '_' . time() . '.' . $extension;
             $filePath = $request->file('file')->storeAs('proposal_files', $finalName, 'public');
 
-            $proposal = Proposal::create([
-                'judul'      => $request->judul,
-                'nama_ketua' => $request->nama_ketua,
-                'file_path'  => $filePath,
-                'anggota'    => $anggotaJson,
-                'biaya'      => $request->biaya,
-                'status'     => 'Dikirim',
-                'user_id'    => auth()->id(),
+            // Simpan Database
+            Proposal::create([
+                'judul'          => $request->judul,
+                'nama_ketua'     => $request->nama_ketua,
+                'fakultas_prodi' => $request->fakultas_prodi,
+                'file_path'      => $filePath,
+                'anggota'        => $anggotaFinal,
+                'biaya'          => $biayaClean,
+                'status'         => 'Dikirim',
+                'user_id'        => $user->id,
             ]);
-
-            $this->logActivity('Mengajukan proposal baru: "' . $proposal->judul . '"');
-
-            NotificationHelper::send(
-                auth()->id(),
-                'Proposal Berhasil Dikirim',
-                'Proposal "' . $proposal->judul . '" telah diterima sistem.',
-                'success'
-            );
 
             return redirect()->route('proposal.index')->with('success', 'Proposal berhasil diajukan!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal upload proposal: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Halaman Edit Proposal
+     */
     public function edit($id)
     {
         $proposal = Proposal::findOrFail($id);
+        $list_fakultas = Fakultas::all();
+        $users = User::all();
 
         if (auth()->user()->role !== 'admin' && auth()->user()->id !== $proposal->user_id) {
             abort(403, 'Akses ditolak.');
         }
 
-        return view('proposal.edit-proposal', compact('proposal'));
+        return view('proposal.edit-proposal', compact('proposal', 'list_fakultas', 'users'));
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Update Data Proposal
+     */
+  public function update(Request $request, $id)
     {
         $proposal = Proposal::findOrFail($id);
 
@@ -129,23 +170,27 @@ class ProposalController extends Controller
         }
 
         $request->validate([
-            'judul'      => 'required|string|max:255',
-            'nama_ketua' => 'required|string|max:255',
-            'biaya'      => 'nullable|numeric',
-            'file'       => 'nullable|file|mimes:pdf,doc,docx|max:102400',
-            'anggota'    => 'nullable|array',
+            'judul'           => 'required|string|max:255',
+            'nama_ketua'      => 'required|string|max:255',
+            'fakultas_prodi'  => 'required|exists:fakultas,id',
+            'biaya'           => 'required',
+            'file'            => 'nullable|file|mimes:pdf|max:10240', // Max 10MB
+            'anggota'         => 'nullable|array',
         ]);
 
-        $anggota = $request->input('anggota', []);
-        $anggota = is_array($anggota) ? array_values(array_filter($anggota, fn($v) => trim((string)$v) !== '')) : [];
-        $anggotaJson = !empty($anggota) ? json_encode($anggota, JSON_UNESCAPED_UNICODE) : null;
+        // 1. Bersihkan biaya (menghapus titik ribuan agar jadi angka murni)
+        $biayaClean = preg_replace('/[^0-9]/', '', $request->biaya);
 
         $oldStatus = $proposal->status;
+
+        // 2. Update field dasar
         $proposal->judul = $request->judul;
         $proposal->nama_ketua = $request->nama_ketua;
-        $proposal->biaya = $request->biaya;
-        $proposal->anggota = $anggotaJson;
+        $proposal->fakultas_prodi = $request->fakultas_prodi;
+        $proposal->biaya = $biayaClean;
+        $proposal->anggota = array_values(array_filter($request->anggota ?? []));
 
+        // 3. Handle File
         if ($request->hasFile('file')) {
             if ($proposal->file_path && Storage::disk('public')->exists($proposal->file_path)) {
                 Storage::disk('public')->delete($proposal->file_path);
@@ -153,105 +198,32 @@ class ProposalController extends Controller
             $proposal->file_path = $request->file('file')->store('proposal_files', 'public');
         }
 
-        if (in_array($oldStatus, ['Ditolak', 'Direvisi'])) {
+        // 4. Ubah status ke 'Hasil Revisi' agar pindah ke halaman monitoring terkait
+        if (in_array($oldStatus, ['Ditolak', 'Revisi'])) {
             $proposal->status = 'Hasil Revisi';
         }
 
         $proposal->save();
-        $this->logActivity('Memperbarui proposal ID: ' . $proposal->id);
 
-        if ($proposal->status === 'Hasil Revisi') {
-            return redirect()->route('monitoring.hasilRevisi')->with('success', 'Revisi berhasil disimpan.');
-        }
-
-        return redirect()->route('proposal.index')->with('success', 'Proposal diperbarui.');
+        // Gunakan redirect ke route hasilRevisi
+        return redirect()->route('monitoring.hasilRevisi')->with('success', 'Proposal berhasil diperbarui dan dikirim ke Hasil Revisi.');
     }
-
+    /**
+     * Download File Proposal
+     */
     public function download($id)
     {
         $proposal = Proposal::findOrFail($id);
         $path = storage_path('app/public/' . $proposal->file_path);
+
         if (!file_exists($path)) return back()->with('error', 'File tidak ditemukan.');
 
         $this->logActivity('Mendownload file proposal ID: ' . $id);
         return response()->download($path);
     }
 
-    public function tinjau($id)
-    {
-        $proposal = Proposal::with(['user', 'reviewers', 'reviews.reviewer'])->findOrFail($id);
-        return view('proposal.tinjau-proposal', compact('proposal'));
-    }
-
-    /* --- MONITORING METHODS --- */
-
     /**
-     * Daftar proposal yang menunggu penunjukan reviewer (Admin)
-     * Atau daftar tugas bagi Reviewer (dengan proteksi conflict of interest)
-     */
-    public function proposalPerluDireview()
-    {
-        $user = auth()->user();
-        $query = Proposal::where('status', 'Perlu Direview')->with('reviewers');
-
-        // Proteksi: Reviewer tidak boleh melihat proposal miliknya sendiri di antrean tugas
-        if ($user->role === 'reviewer') {
-            $query->where('user_id', '!=', $user->id);
-        }
-
-        $proposals = $query->latest()->get();
-        $reviewers = User::where('role', 'reviewer')->orderBy('name')->get();
-
-        return view('proposal.proposal-perlu-direview', compact('proposals', 'reviewers'));
-    }
-
-    public function proposalSedangDireview()
-    {
-        $proposals = Proposal::where('status', 'Sedang Direview')
-            ->with(['reviewers', 'reviews'])
-            ->latest()
-            ->get();
-
-        return view('proposal.proposal-sedang-direview', compact('proposals'));
-    }
-
-    public function reviewSelesai()
-    {
-        $proposals = Proposal::where('status', 'Review Selesai')
-            ->orWhereIn('status_pendanaan', ['Disetujui', 'Ditolak', 'Direvisi'])
-            ->with(['user', 'reviews.reviewer'])
-            ->latest('updated_at')
-            ->get();
-
-        return view('proposal.proposal-selesai', compact('proposals'));
-    }
-
-    public function proposalDisetujui()
-    {
-        $proposals = Proposal::where('status', 'Disetujui')->latest()->get();
-        return view('proposal.proposal-disetujui', compact('proposals'));
-    }
-
-    public function proposalDitolak()
-    {
-        $proposals = Proposal::where('status', 'Ditolak')->latest()->get();
-        return view('proposal.proposal-ditolak', compact('proposals'));
-    }
-
-    public function proposalDirevisi()
-    {
-        $proposals = Proposal::whereIn('status', ['Ditolak', 'Direvisi'])->latest()->get();
-        return view('proposal.proposal-direvisi', compact('proposals'));
-    }
-
-    public function hasilRevisi()
-    {
-        $proposals = Proposal::where('status', 'Hasil Revisi')->latest()->get();
-        return view('proposal.hasil-review', compact('proposals'));
-    }
-
-    /**
-     * Admin menugaskan reviewer (Diberikan proteksi agar reviewer tidak menilai diri sendiri)
+     * Assign Reviewer oleh Admin
      */
     public function assignReviewer(Request $request, $id)
     {
@@ -263,9 +235,8 @@ class ProposalController extends Controller
             'review_deadline' => 'required|date|after:now',
         ]);
 
-        // CEK CONFLICT OF INTEREST
         if ($request->reviewer_1 == $proposal->user_id || $request->reviewer_2 == $proposal->user_id) {
-            return back()->with('error', 'Reviewer tidak boleh pemilik dari proposal ini!');
+            return back()->with('error', 'Reviewer tidak boleh pemilik proposal!');
         }
 
         if ($request->reviewer_1 == $request->reviewer_2) {
@@ -282,53 +253,167 @@ class ProposalController extends Controller
         return back()->with('success', 'Reviewer berhasil ditugaskan.');
     }
 
-    public function destroy($id)
-    {
-        $proposal = Proposal::findOrFail($id);
+    /**
+     * Hapus Proposal
+     */
+  public function destroy($id)
+{
+    $proposal = Proposal::findOrFail($id);
 
-        if (auth()->id() !== $proposal->user_id && auth()->user()->role !== 'admin') {
-            abort(403, 'Akses ditolak.');
-        }
-
-        if ($proposal->file_path && Storage::disk('public')->exists($proposal->file_path)) {
-            Storage::disk('public')->delete($proposal->file_path);
-        }
-
-        $proposal->delete();
-        $this->logActivity('Menghapus proposal: ' . $proposal->judul);
-
-        return back()->with('success', 'Proposal berhasil dihapus.');
+    // Pastikan hanya pemilik yang bisa hapus
+    if (auth()->id() !== $proposal->user_id) {
+        abort(403, 'Anda tidak memiliki akses untuk menghapus proposal ini.');
     }
 
-    public function setReview($id)
-    {
-        $proposal = Proposal::findOrFail($id);
-        $proposal->update(['status' => 'Perlu Direview']);
-        return redirect()->back()->with('success', 'Proposal masuk antrean review.');
+    // Hapus file dari storage jika ada
+    if ($proposal->file_path) {
+        Storage::disk('public')->delete($proposal->file_path);
     }
 
-    public function keputusan(Request $request, $id)
-    {
-        $request->validate([
-            'status_pendanaan' => 'required|in:Disetujui,Ditolak,Direvisi',
-        ]);
+    $proposal->delete();
 
-        $proposal = Proposal::findOrFail($id);
-        $proposal->update(['status_pendanaan' => $request->status_pendanaan]);
+    return redirect()->back()->with('success', 'Proposal berhasil dihapus.');
+}
 
-        return redirect()->back()->with('success', 'Keputusan disimpan.');
+    /**
+     * Cetak Review ke PDF
+     */
+   public function downloadReviewPdf($id)
+{
+    $review = Review::with(['reviewer', 'proposal'])->findOrFail($id);
+    $data = ['reviews' => collect([$review]), 'is_pdf' => true];
+
+    $pdf = Pdf::loadView('proposal.admin.hasil-review', $data);
+
+    // Gunakan stream() agar muncul di tab baru browser
+    return $pdf->setPaper('a4', 'portrait')->stream('Hasil-Review-'.$id.'.pdf');
+}
+
+    // --- View Monitoring Methods ---
+
+  public function proposalPerluDireview()
+{
+    $user = auth()->user();
+
+    // ✅ PERBAIKAN: Tambahkan 'Sedang Direview' (dan 'Dikirim'/'Hasil Revisi' jika perlu)
+    $query = Proposal::whereIn('status', [
+            'Perlu Direview',
+            'Sedang Direview',
+            'Dikirim',
+            'Hasil Revisi'
+        ])
+        ->with('reviewers');
+
+    // Proteksi: Reviewer tidak boleh melihat proposal miliknya sendiri
+    if ($user->role === 'reviewer') {
+        $query->where('user_id', '!=', $user->id);
     }
 
-    public function downloadReviewPdf($id)
-    {
-        $review = \App\Models\Review::with(['reviewer', 'proposal'])->findOrFail($id);
-        $reviews = collect([$review]);
-        $data = ['reviews' => $reviews, 'is_pdf' => true];
+    $proposals = $query->latest()->get();
+    $reviewers = User::where('role', 'reviewer')->orderBy('name')->get();
 
-        $pdf = \Pdf::loadView('proposal.admin.hasil-review', $data);
-        return $pdf->setPaper('a4', 'portrait')->stream('Hasil-Review-'.$id.'.pdf');
+    return view('proposal.proposal-perlu-direview', compact('proposals', 'reviewers'));
+}
+
+     public function proposalSedangDireview()
+    {
+        $proposals = Proposal::where('status', 'Sedang Direview')
+            ->with(['reviewers', 'reviews'])
+            ->latest()
+            ->get();
+
+        return view('proposal.proposal-sedang-direview', compact('proposals'));
     }
-    public function daftarReview(Request $request)
+    public function reviewSelesai()
+    {
+        $proposals = Proposal::where('status', 'Review Selesai')
+            ->orWhereIn('status_pendanaan', ['Disetujui', 'Ditolak', 'Direvisi'])
+            ->with(['user', 'reviews.reviewer'])
+            ->latest('updated_at')
+            ->get();
+
+        return view('proposal.proposal-selesai', compact('proposals'));
+    }
+    public function proposalDitolak()
+    {
+        $proposals = Proposal::where('status', 'Ditolak')->latest()->get();
+        return view('proposal.proposal-ditolak', compact('proposals'));
+    }
+public function proposalDirevisi()
+    {
+        $proposals = Proposal::whereIn('status', ['Ditolak', 'Direvisi'])->latest()->get();
+        return view('proposal.proposal-direvisi', compact('proposals'));
+    }
+
+// Fungsi untuk Proposal Disetujui
+ public function proposalDisetujui()
+    {
+        $proposals = Proposal::where('status', 'Disetujui')->latest()->get();
+        return view('proposal.proposal-disetujui', compact('proposals'));
+    }
+
+// Tambahkan juga fungsi ini jika belum ada (antisipasi error berikutnya)
+public function proposalSelesai()
+{
+    // Ambil semua proposal yang sudah melewati tahap review
+    $proposals = Proposal::whereIn('status', [
+            'Review Selesai',
+            'Disetujui',
+            'Ditolak',
+            'Selesai'
+        ])
+        ->latest()
+        ->get();
+
+    return view('proposal.proposal-selesai', compact('proposals'));
+}
+public function hasilRevisi()
+    {
+        $proposals = Proposal::where('status', 'Hasil Revisi')->latest()->get();
+        return view('proposal.hasil-review', compact('proposals'));
+    }
+
+public function keputusan(Request $request, $id)
+{
+    $proposal = Proposal::findOrFail($id);
+
+    // 1. Tambahkan 'Disetujui' di sini
+    $request->validate([
+        'status_pendanaan' => 'required|string|in:Disetujui,Ditolak,Direvisi,Review Selesai'
+    ]);
+
+    // 2. Update status utama agar tidak hilang dari query 'whereIn' halaman Selesai
+    $proposal->status = $request->status_pendanaan;
+
+    // 3. Simpan juga ke kolom khusus pendanaan jika Anda menggunakannya
+    $proposal->status_pendanaan = $request->status_pendanaan;
+
+    $proposal->save();
+
+    if (method_exists($this, 'logActivity')) {
+        $this->logActivity("Admin mengubah status proposal ID {$id} menjadi: " . $request->status_pendanaan);
+    }
+
+    return redirect()->back()->with('success', 'Keputusan berhasil disimpan!');
+}
+public function setReview($id)
+{
+    $proposal = Proposal::findOrFail($id);
+
+    // Ubah status agar masuk ke kategori "Perlu Direview"
+    $proposal->status = 'Sedang Direview';
+    $proposal->save();
+
+    // Alihkan ke route halaman "Proposal Perlu Direview"
+    return redirect()->route('monitoring.proposalPerluDireview')
+                     ->with('success', 'Proposal telah dipindahkan ke daftar review.');
+}
+ public function tinjau($id)
+    {
+        $proposal = Proposal::with(['user', 'reviewers', 'reviews.reviewer'])->findOrFail($id);
+        return view('proposal.tinjau-proposal', compact('proposal'));
+    }
+     public function daftarReview(Request $request)
 {
     $user = Auth::user();
     $query = Proposal::with(['user', 'reviewers']);
@@ -347,4 +432,40 @@ class ProposalController extends Controller
 
     return view('admin.daftar_review', compact('proposals'));
 }
+
+public function uploadLaporanKemajuan(Request $request, $id)
+{
+    $request->validate([
+        'laporan_kemajuan' => 'required|mimes:pdf|max:2048',
+    ]);
+
+    $proposal = Proposal::findOrFail($id);
+
+    $file = $request->file('laporan_kemajuan');
+    $filename = 'laporan_kemajuan_' . time() . '.' . $file->getClientOriginalExtension();
+    $file->storeAs('laporan', $filename, 'public');
+
+    $proposal->update(['laporan_kemajuan' => $filename]);
+
+    return back()->with('success', 'Laporan Kemajuan berhasil diunggah.');
+}
+
+public function uploadLaporanAkhir(Request $request, $id)
+{
+    $request->validate([
+        'laporan_akhir' => 'required|mimes:pdf|max:2048',
+    ]);
+
+    $proposal = Proposal::findOrFail($id);
+
+    $file = $request->file('laporan_akhir');
+    $filename = 'laporan_akhir_' . time() . '.' . $file->getClientOriginalExtension();
+    $file->storeAs('laporan', $filename, 'public');
+
+    $proposal->update(['laporan_akhir' => $filename]);
+
+    return back()->with('success', 'Laporan Akhir berhasil diunggah.');
+}
+
+
 }

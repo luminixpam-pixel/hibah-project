@@ -28,6 +28,7 @@
             <div class="card border-0 shadow-sm p-3 bg-white border-start border-primary border-4">
                 <small class="text-muted fw-bold text-uppercase">Rata-rata Dana / Dosen</small>
                 <h3 class="fw-bold mb-0 text-primary">
+                    {{-- FORMAT RUPIAH --}}
                     Rp {{ number_format($riwayatDosen->avg('total_dana') ?? 0, 0, ',', '.') }}
                 </h3>
             </div>
@@ -44,6 +45,7 @@
             <div class="card border-0 shadow-sm p-3 bg-white border-start border-warning border-4">
                 <small class="text-muted fw-bold text-uppercase">Total Anggaran Terpakai</small>
                 <h3 class="fw-bold mb-0 text-dark">
+                    {{-- FORMAT RUPIAH --}}
                     Rp {{ number_format($riwayatDosen->sum('total_dana') ?? 0, 0, ',', '.') }}
                 </h3>
             </div>
@@ -86,21 +88,22 @@
                                 </a>
                             </td>
                             <td><span class="small text-secondary">{{ $dosen->fakultas ?? '-' }}</span></td>
-                            <td class="text-center fw-bold">{{ $dosen->total_pengajuan }}</td>
+                            <td class="text-center fw-bold">{{ number_format($dosen->total_pengajuan, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-3">
-                                    {{ $dosen->total_disetujui }}
+                                    {{ number_format($dosen->total_disetujui, 0, ',', '.') }}
                                 </span>
                             </td>
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-2">
-                                    <div class="progress w-50" style="height: 6px;">
+                                    <div class="progress" style="width: 60px; height: 6px;">
                                         <div class="progress-bar {{ $rateColor }}" role="progressbar" style="width: {{ $rate }}%"></div>
                                     </div>
-                                    <span class="small fw-bold">{{ number_format($rate, 0) }}%</span>
+                                    <span class="small fw-bold">{{ number_format($rate, 1) }}%</span>
                                 </div>
                             </td>
                             <td class="text-end pe-4">
+                                {{-- FORMAT RUPIAH --}}
                                 <div class="fw-bold text-primary">Rp {{ number_format($dosen->total_dana ?? 0, 0, ',', '.') }}</div>
                             </td>
                         </tr>
@@ -124,23 +127,3 @@
     </div>
 </div>
 @endsection
-
-@push('styles')
-<style>
-    .avatar-sm { width: 35px; height: 35px; font-size: 14px; }
-    .x-small { font-size: 11px; }
-    .bg-primary-subtle { background-color: #eef2ff; }
-    .bg-success-subtle { background-color: #f0fdf4; }
-    .text-success { color: #166534; }
-
-    .table thead th { font-weight: 700; font-size: 11px; letter-spacing: 0.05em; border-bottom: none; }
-    .table tbody tr { transition: background 0.2s ease; cursor: pointer; }
-    .table tbody tr:hover { background-color: #f8fafc; }
-
-    @media print {
-        .btn, form, .navbar, .sidebar { display: none !important; }
-        .container { max-width: 100% !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
-        .card { border: 1px solid #ddd !important; box-shadow: none !important; }
-    }
-</style>
-@endpush

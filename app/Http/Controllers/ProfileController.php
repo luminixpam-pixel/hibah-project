@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Fakultas;
 
 class ProfileController extends Controller
 {
@@ -17,7 +18,8 @@ class ProfileController extends Controller
     public function edit()
     {
         $user = Auth::user();
-        return view('profile.edit', compact('user'));
+        $list_fakultas = Fakultas::all();
+        return view('profile.edit', compact('user', 'list_fakultas'));
     }
 
     public function update(Request $request)

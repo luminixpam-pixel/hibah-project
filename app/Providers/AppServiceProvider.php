@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Models\Review;
-use App\Observers\ReviewObserver;
+// TAMBAHKAN 3 BARIS DI BAWAH INI:
+use Illuminate\Support\Facades\View;
+use App\Models\Fakultas;
+use App\Models\User;
+use App\Models\Template;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,7 +24,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // daftarkan observer untuk model Review
-        Review::observe(ReviewObserver::class);
+        // Menggunakan View Composer agar data tersedia di semua halaman (tanda *)
+        View::composer('*', function ($view) {
+            $view->with('list_fakultas', Fakultas::all());
+            $view->with('all_dosen', User::whereIn('role', ['reviewer', 'pengaju'])->get());
+        });
+
+        View::composer('*', function ($view) {
+        $view->with('list_fakultas', \App\Models\Fakultas::all());
+        $view->with('all_dosen', \App\Models\User::whereIn('role', ['reviewer', 'pengaju'])->get());
+
+        // Tambahkan ini agar Template selalu terbawa di semua halaman
+        $view->with('template_kemajuan', Template::where('jenis', 'laporan_kemajuan')->first());
+        $view->with('template_akhir', Template::where('jenis', 'laporan_akhir')->first());
+    });
     }
 }

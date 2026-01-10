@@ -12,10 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('proposals', function (Blueprint $table) {
-            // Menambahkan kolom untuk path file laporan dan teks keterangan
-            // 'nullable' agar tidak error jika data lama belum memiliki laporan
+
+            // Laporan lama (opsional / existing)
             $table->string('file_laporan')->nullable()->after('review_deadline');
+
+            // Keterangan laporan
             $table->text('keterangan')->nullable()->after('file_laporan');
+
+            // 🔥 Laporan Kemajuan
+            $table->string('laporan_kemajuan')->nullable()->after('keterangan');
+
+            // 🔥 Laporan Akhir
+            $table->string('laporan_akhir')->nullable()->after('laporan_kemajuan');
         });
     }
 
@@ -25,8 +33,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('proposals', function (Blueprint $table) {
-            // Menghapus kolom jika migrasi di-rollback
-            $table->dropColumn(['file_laporan', 'keterangan']);
+            $table->dropColumn([
+                'file_laporan',
+                'keterangan',
+                'laporan_kemajuan',
+                'laporan_akhir',
+            ]);
         });
     }
 };

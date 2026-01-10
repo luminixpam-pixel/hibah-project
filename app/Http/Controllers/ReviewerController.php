@@ -170,80 +170,69 @@ class ReviewerController extends Controller
         return view('reviewer.isi-review', compact('proposal'));
     }
 
-    public function submitReview(Request $request, $id)
-    {
-        $proposal = Proposal::with('reviewers')->findOrFail($id);
+   public function submitReview(Request $request, $id)
+{
+    $proposal = Proposal::with('reviewers')->findOrFail($id);
 
-        if (Auth::user()->role === 'reviewer') {
-            if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
-                abort(403, 'Anda bukan reviewer yang ditugaskan.');
-            }
-        }
+    // 1. Validasi Input (Wajib diisi 0-5)
+    $request->validate([
+        'nilai_1' => 'required|integer|min:0|max:5',
+        'nilai_2' => 'required|integer|min:0|max:5',
+        'nilai_3' => 'required|integer|min:0|max:5',
+        'nilai_4' => 'required|integer|min:0|max:5',
+        'nilai_5' => 'required|integer|min:0|max:5',
+        'nilai_6' => 'required|integer|min:0|max:5',
+        'nilai_7' => 'required|integer|min:0|max:5',
+        'catatan' => 'nullable|string',
+    ]);
 
-        $request->validate([
-            'nilai_1' => 'nullable|integer|min:0|max:5',
-            'nilai_2' => 'nullable|integer|min:0|max:5',
-            'nilai_3' => 'nullable|integer|min:0|max:5',
-            'nilai_4' => 'nullable|integer|min:0|max:5',
-            'nilai_5' => 'nullable|integer|min:0|max:5',
-            'nilai_6' => 'nullable|integer|min:0|max:5',
-            'nilai_7' => 'nullable|integer|min:0|max:5',
-            'catatan' => 'nullable|string',
-            'status'  => 'nullable|string',
-        ]);
+    // 2. Hitung Skor Berdasarkan Bobot (Sesuai Blade Anda)
+    $bobot = [5, 5, 5, 3, 5, 5, 10];
+    $totalSkorMurni = 0;
 
-        $totalScore = collect([
-            $request->nilai_1,
-            $request->nilai_2,
-            $request->nilai_3,
-            $request->nilai_4,
-            $request->nilai_5,
-            $request->nilai_6,
-            $request->nilai_7,
-        ])->filter()->sum();
-
-        // ✅ LOCK: kalau reviewer ini sudah submit untuk proposal ini, stop
-        $alreadySubmitted = Review::where('proposal_id', $proposal->id)
-            ->where('reviewer_id', Auth::id())
-            ->exists();
-
-        if ($alreadySubmitted) {
-            return redirect()->back()->with('error', 'Anda sudah submit review untuk proposal ini. Review tidak bisa diubah lagi.');
-        }
-
-        Review::updateOrCreate(
-            [
-                'proposal_id' => $proposal->id,
-                'reviewer_id' => Auth::id(),
-            ],
-            [
-                'nilai_1'     => $request->nilai_1,
-                'nilai_2'     => $request->nilai_2,
-                'nilai_3'     => $request->nilai_3,
-                'nilai_4'     => $request->nilai_4,
-                'nilai_5'     => $request->nilai_5,
-                'nilai_6'     => $request->nilai_6,
-                'nilai_7'     => $request->nilai_7,
-                'catatan'     => $request->catatan,
-                'total_score' => $totalScore,
-            ]
-        );
-
-        // ===========================
-        // ✅ LOGIKA 2 REVIEWER WAJIB
-        // ===========================
-        $jumlahReviewerDitugaskan = $proposal->reviewers->count();
-
-        $jumlahReviewMasuk = Review::where('proposal_id', $proposal->id)
-            ->distinct('reviewer_id')
-            ->count('reviewer_id');
-
-        if ($jumlahReviewerDitugaskan > 0 && $jumlahReviewMasuk >= $jumlahReviewerDitugaskan) {
-            $proposal->update(['status' => 'Review Selesai']);
-        } else {
-            $proposal->update(['status' => 'Sedang Direview']);
-        }
-
-        return redirect()->back()->with('success', 'Review berhasil disimpan.');
+    for ($i = 1; $i <= 7; $i++) {
+        $skorMurni = $request->input("nilai_$i");
+        $totalSkorMurni += ($skorMurni * $bobot[$i-1]);
     }
+
+    // 3. Normalisasi ke Skala 500
+    // 190 didapat dari (Total Bobot: 38) * (Skor Max: 5)
+    $maxMurni = 190;
+    $finalScore500 = round(($totalSkorMurni / $maxMurni) * 500);
+
+    // 4. Simpan ke Database
+    Review::create([
+        'proposal_id' => $proposal->id,
+        'reviewer_id' => Auth::id(),
+        'nilai_1'     => $request->nilai_1,
+        'nilai_2'     => $request->nilai_2,
+        'nilai_3'     => $request->nilai_3,
+        'nilai_4'     => $request->nilai_4,
+        'nilai_5'     => $request->nilai_5,
+        'nilai_6'     => $request->nilai_6,
+        'nilai_7'     => $request->nilai_7,
+        'total_score' => $finalScore500, // Disimpan sebagai angka 0-500
+        'catatan'     => $request->catatan,
+    ]);
+
+    // 5. Update Status Proposal
+    $this->updateProposalStatus($proposal);
+
+    return redirect()->route('proposal.index')->with('success', 'Review berhasil dikirim dengan skor: ' . $finalScore500);
+}
+
+/**
+ * Helper untuk cek apakah semua reviewer sudah submit
+ */
+private function updateProposalStatus($proposal)
+{
+    $jumlahReviewer = $proposal->reviewers->count();
+    $jumlahReviewMasuk = Review::where('proposal_id', $proposal->id)->count();
+
+    if ($jumlahReviewer > 0 && $jumlahReviewMasuk >= $jumlahReviewer) {
+        $proposal->update(['status' => 'Review Selesai']);
+    } else {
+        $proposal->update(['status' => 'Sedang Direview']);
+    }
+}
 }
