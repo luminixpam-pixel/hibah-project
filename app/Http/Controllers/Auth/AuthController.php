@@ -62,35 +62,60 @@ class AuthController extends Controller
 public function adminUpdate(Request $request, $id)
 {
     $user = User::findOrFail($id);
-    $isAdmin = (auth()->user()->role === 'admin');
+    $currentUser = auth()->user();
 
-    if (!$isAdmin) {
-        return back()->with('error', 'Hanya Admin yang dapat melakukan tindakan ini.');
+    // 1. Validasi: Admin bisa edit semua orang, User hanya bisa edit dirinya sendiri
+    if ($currentUser->role !== 'admin' && $currentUser->id !== $user->id) {
+        return back()->with('error', 'Akses ditolak.');
     }
 
-    // Validasi input
-    $request->validate([
-        'username' => 'required|string|max:255|unique:users,username,' . $id,
-        'email'    => 'required|email|unique:users,email,' . $id,
-        'nidn'     => 'nullable|string|max:50',
-        'fakultas' => 'required|string',
-        'password' => 'nullable|min:6', // Password opsional
-    ]);
+    if ($currentUser->role === 'admin') {
+        // --- LOGIKA ADMIN ---
+        $request->validate([
+            'email'    => 'required|email|unique:users,email,' . $id,
+            'password' => 'nullable|min:6',
+        ]);
 
-    // Update data dasar
-    $user->username = $request->username;
-    $user->email    = $request->email;
-    $user->nidn     = $request->nidn;
-    $user->fakultas = $request->fakultas;
+        $user->email = $request->email;
+        if ($request->filled('password')) {
+            $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+        }
+    } else {
+        // --- LOGIKA USER (Pengaju/Reviewer) ---
+        $request->validate([
+            'email'    => 'required|email|unique:users,email,' . $id,
+            'nidn'     => 'required|string|max:20',
+            'fakultas' => 'required|string',
+        ]);
 
-    // Update password jika diisi oleh admin
-    if ($request->filled('password')) {
-        $user->password = Hash::make($request->password);
+        $user->email = $request->email;
+        $user->nidn = $request->nidn;
+        $user->fakultas = $request->fakultas;
     }
 
     $user->save();
+    return back()->with('success', 'Profil berhasil diperbarui!');
+}
 
-    return back()->with('success', 'Akun ' . $user->username . ' berhasil diperbarui!');
+public function update(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+
+    // Validasi input
+    $request->validate([
+        'email' => 'required|email|unique:users,email,' . $user->id,
+        'nidn' => 'nullable|string',
+        'fakultas' => 'nullable|string',
+    ]);
+
+    // Update data
+    $user->update([
+        'email' => $request->email,
+        'nidn' => $request->nidn,
+        'fakultas' => $request->fakultas,
+    ]);
+
+    return redirect()->back()->with('success', 'Profil berhasil diperbarui!');
 }
   public function logout(Request $request) {
         Auth::logout();

@@ -36,6 +36,18 @@
         padding: 0.4rem 0.6rem;
         border-radius: 8px;
     }
+
+    /* Pastikan backdrop modal tidak menutupi seluruh layar secara salah */
+.modal-backdrop {
+    z-index: 1040 !important;
+}
+.modal {
+    z-index: 1050 !important;
+}
+/* Jika navbar Anda menggunakan z-index tinggi */
+nav.navbar {
+    z-index: 1030 !important;
+}
 </style>
 </style>
 
@@ -65,6 +77,28 @@
             <input type="text" id="table-search" class="form-control border-start-0" placeholder="Cari data proposal...">
         </div>
     </div>
+
+    <script>
+document.getElementById('table-search').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('table tbody tr');
+
+    rows.forEach(row => {
+        // Mengambil teks dari seluruh baris tabel
+        let text = row.textContent.toLowerCase();
+
+        // Jika teks pencarian ditemukan dalam baris tersebut, tampilkan barisnya
+        if (text.includes(filter)) {
+            row.style.display = '';
+        } else {
+            // Sembunyikan baris jika tidak cocok, kecuali baris "Belum ada data"
+            if (!row.classList.contains('empty-row')) {
+                row.style.display = 'none';
+            }
+        }
+    });
+});
+</script>
 
     {{-- TABEL --}}
     <div class="table-responsive shadow-sm" style="border-radius: 12px;">
@@ -125,32 +159,48 @@
                                     </a>
                                 @endif
 
-                                {{-- Admin: Push to Review - Soft Cyan --}}
-                                @if($role === 'admin' && ($proposal->status === 'Dikirim' || $proposal->status === 'Hasil Revisi'))
-                                    <form action="{{ route('proposal.set-review', $proposal->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="btn btn-md border-0 shadow-sm d-flex align-items-center justify-content-center"
-                                                title="Proses ke Review" onclick="return confirm('Pindahkan ke antrean review?')"
-                                                style="background-color: #e0f7fa; color: #00838f; width: 38px; height: 38px; border-radius: 10px;">
-                                            <i class="bi bi-arrow-right-circle-fill fs-5"></i>
-                                        </button>
-                                    </form>
-                                @endif
+                                {{-- FITUR EDIT --}}
+                                {{-- Logika: Jika dia pemilik proposal, dia BOLEH aksi, apa pun role-nya (pengaju/reviewer) --}}
+                                @if($proposal->user_id === Auth::user()->id)
+                                    @php
+                                        $isStatusEditable = in_array($proposal->status, ['Dikirim', 'Direvisi']);
+                                    @endphp
 
-                                {{-- Tombol Hapus: Pengaju & Reviewer - Soft Red --}}
-                                @if(in_array($role, ['pengaju', 'reviewer']) && in_array($proposal->status, ['Dikirim', 'Ditolak', 'Direvisi', 'Sedang Direview', 'Hasil Revisi']))
-                                    <form action="{{ route('proposal.destroy', $proposal->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus proposal ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-md border-0 shadow-sm d-flex align-items-center justify-content-center"
-                                                title="Hapus"
-                                                style="background-color: #ffebee; color: #c62828; width: 38px; height: 38px; border-radius: 10px;">
-                                            <i class="bi bi-trash3-fill fs-5"></i>
+                                    @if($isMasaHibah && $isStatusEditable)
+                                        {{-- Tombol Aktif --}}
+                                        <a href="{{ route('proposal.edit', $proposal->id) }}"
+                                        class="btn btn-md border-0 shadow-sm d-flex align-items-center justify-content-center"
+                                        title="Edit Proposal"
+                                        style="background-color: #fff9c4; color: #fbc02d; width: 38px; height: 38px; border-radius: 10px;">
+                                            <i class="bi bi-pencil-square fs-5"></i>
+                                        </a>
+                                    @else
+                                        {{-- Tombol Terkunci --}}
+                                        <button type="button"
+                                                onclick="Swal.fire('Terkunci', 'Anda tidak dapat mengedit proposal pada status ini atau masa hibah telah berakhir.', 'info')"
+                                                class="btn btn-md border-0 shadow-sm d-flex align-items-center justify-content-center"
+                                                style="background-color: #f5f5f5; color: #bdbdbd; width: 38px; height: 38px; border-radius: 10px;">
+                                            <i class="bi bi-pencil-square fs-5"></i>
                                         </button>
-                                    </form>
+                                    @endif
+
+                                    {{-- FITUR HAPUS --}}
+                                    @php
+                                        $allowedDelete = ['Dikirim', 'Ditolak', 'Direvisi', 'Sedang Direview', 'Hasil Revisi'];
+                                    @endphp
+                                    @if(in_array($proposal->status, $allowedDelete))
+                                        <form action="{{ route('proposal.destroy', $proposal->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus proposal Anda sendiri?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn border-0 shadow-sm d-flex align-items-center justify-content-center"
+                                                    title="Hapus"
+                                                    style="background-color: #ffebee; color: #c62828; width: 38px; height: 38px; border-radius: 10px;">
+                                                <i class="bi bi-trash3-fill fs-5"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 @endif
-                            </div>
+                                                        </div>
                         </td>
                     </tr>
                 @empty
@@ -165,84 +215,92 @@
 
 {{-- --- MODAL SECTION (DI LUAR CONTAINER) --- --}}
 @foreach ($proposals as $proposal)
-<div class="modal fade" id="tinjauModal{{ $proposal->id }}" tabindex="-1" data-bs-focus="false" aria-hidden="true">
+<div class="modal fade" id="tinjauModal{{ $proposal->id }}" tabindex="-1" aria-labelledby="tinjauModalLabel{{ $proposal->id }}" aria-hidden="true" style="z-index: 1060;">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-dark text-white px-4">
-                <h5 class="modal-title d-flex align-items-center">
-                    <i class="bi bi-file-earmark-text me-2"></i>
-                    <span class="fs-6">Detail Proposal</span>
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+
+            {{-- Header: Nuansa Kuning Soft (Senada dengan Tombol Edit) --}}
+            <div class="modal-header border-0 px-4 py-3" style="background-color: #fff9c4;">
+                <h5 class="modal-title d-flex align-items-center" id="tinjauModalLabel{{ $proposal->id }}">
+                    <div class="rounded-circle bg-white d-flex align-items-center justify-content-center shadow-sm me-2" style="width: 35px; height: 35px;">
+                        <i class="bi bi-file-earmark-text text-warning"></i>
+                    </div>
+                    <span class="fw-bold" style="color: #827717; font-size: 1.1rem;">Detail & Pratinjau Proposal</span>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body p-0">
                 <div class="container-fluid p-0">
                     <div class="row g-0">
-                        {{-- Panel Kiri --}}
-                        <div class="col-lg-4 bg-light border-end p-4">
+                        {{-- Panel Kiri: Informasi --}}
+                        <div class="col-lg-4 bg-white p-4 border-end">
                             <div class="mb-4">
-                                <label class="text-muted small fw-bold text-uppercase d-block">Judul</label>
-                                <p class="fw-bold text-dark">{{ $proposal->judul }}</p>
+                                <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="letter-spacing: 1px;">Judul</label>
+                                <p class="fw-bold text-dark lh-sm" style="font-size: 1.05rem;">{{ $proposal->judul }}</p>
                             </div>
-                            <div class="mb-3">
-                                <label class="text-muted small fw-bold text-uppercase d-block">Ketua</label>
-                                <p><i class="bi bi-person text-primary"></i> {{ $proposal->nama_ketua }}</p>
-                            </div>
+
                             <div class="mb-4">
-                                <label class="text-muted small fw-bold text-uppercase d-block">Anggota</label>
-                                <div class="p-2 border rounded bg-white small">
+                                <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="letter-spacing: 1px;">Ketua Pengaju</label>
+                                <div class="d-flex align-items-center p-2 rounded-3 bg-light">
+                                    <i class="bi bi-person-circle fs-4 text-primary me-2"></i>
+                                    <span class="fw-semibold text-secondary">{{ $proposal->nama_ketua }}</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="text-muted small fw-bold text-uppercase d-block mb-2" style="letter-spacing: 1px;">Anggota Tim</label>
+                                <div class="p-3 border-0 rounded-4 shadow-sm bg-light small">
                                     @if(!empty($proposal->anggota) && is_array($proposal->anggota))
                                         <ul class="list-unstyled mb-0">
                                             @foreach($proposal->anggota as $nama)
-                                                <li><i class="bi bi-check2 text-success me-1"></i> {{ $nama }}</li>
+                                                <li class="mb-2 d-flex align-items-start">
+                                                    <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                                                    <span class="text-secondary fw-medium">{{ $nama }}</span>
+                                                </li>
                                             @endforeach
                                         </ul>
                                     @else
-                                        <span class="text-muted italic">-</span>
+                                        <div class="text-center py-2 text-muted fst-italic">
+                                            <i class="bi bi-people me-1"></i> Tidak ada anggota
+                                        </div>
                                     @endif
                                 </div>
                             </div>
-                            <div class="d-grid gap-2">
+
+                            <div class="d-grid gap-2 mt-auto">
                                 @if($proposal->file_path)
-                                    <a href="{{ route('proposal.download', $proposal->id) }}" class="btn btn-primary btn-sm">
-                                        <i class="bi bi-download"></i> Download Asli
+                                    <a href="{{ route('proposal.download', $proposal->id) }}" class="btn btn-primary border-0 py-2 shadow-sm" style="border-radius: 12px; background-color: #0d6efd;">
+                                        <i class="bi bi-cloud-arrow-down-fill me-2"></i>Download File Asli
                                     </a>
                                 @endif
-                                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                <button type="button" class="btn btn-outline-secondary py-2" data-bs-dismiss="modal" style="border-radius: 12px;">Tutup</button>
                             </div>
                         </div>
 
-                      {{-- Panel Kanan (Pratinjau) --}}
-                        <div class="col-lg-8 p-0" style="background-color: #525659; min-height: 700px;">
+                        {{-- Panel Kanan: Pratinjau PDF --}}
+                        <div class="col-lg-8 p-0" style="background-color: #f1f3f4; min-height: 650px;">
                             @if($proposal->file_path)
-                                @php
-                                    $extension = pathinfo($proposal->file_path, PATHINFO_EXTENSION);
-                                @endphp
+                                @php $extension = pathinfo($proposal->file_path, PATHINFO_EXTENSION); @endphp
 
                                 @if(strtolower($extension) === 'pdf')
-                                    {{-- Tampilkan Iframe HANYA jika file adalah PDF --}}
-                                    <iframe
-                                        src="{{ asset('storage/' . $proposal->file_path) }}"
-                                        width="100%"
-                                        height="700px"
-                                        style="border: none;">
-                                    </iframe>
+                                    <iframe src="{{ asset('storage/' . $proposal->file_path) }}#toolbar=0" width="100%" height="700px" style="border: none;"></iframe>
                                 @else
-                                    {{-- Tampilan untuk Word (.doc/.docx) agar TIDAK otomatis download --}}
-                                    <div class="d-flex flex-column align-items-center justify-content-center text-white h-100 p-5">
-                                        <i class="bi bi-file-earmark-word display-1 text-primary mb-3"></i>
-                                        <h4 class="fw-bold">Pratinjau Tidak Tersedia</h4>
-                                        <p class="text-center opacity-75">Browser tidak dapat menampilkan file Word secara langsung. Silakan unduh file untuk melihat isi proposal.</p>
-                                        <a href="{{ asset('storage/' . $proposal->file_path) }}" class="btn btn-primary btn-lg mt-3 shadow">
-                                            <i class="bi bi-download me-2"></i> Unduh File Proposal
+                                    <div class="d-flex flex-column align-items-center justify-content-center h-100 p-5 text-center">
+                                        <div class="bg-white p-4 rounded-circle shadow-sm mb-4">
+                                            <i class="bi bi-file-earmark-word text-primary" style="font-size: 4rem;"></i>
+                                        </div>
+                                        <h5 class="fw-bold text-dark">Pratinjau Tidak Tersedia</h5>
+                                        <p class="text-muted px-md-5">File Word tidak dapat ditampilkan langsung di browser. Silakan unduh untuk meninjau dokumen secara lengkap.</p>
+                                        <a href="{{ asset('storage/' . $proposal->file_path) }}" class="btn btn-outline-primary rounded-pill px-4">
+                                            <i class="bi bi-download me-2"></i>Unduh Sekarang
                                         </a>
                                     </div>
                                 @endif
                             @else
-                                <div class="text-white text-center p-5">
-                                    <i class="bi bi-file-earmark-x display-1 opacity-50"></i>
-                                    <p>File tidak tersedia</p>
+                                <div class="d-flex flex-column align-items-center justify-content-center h-100 opacity-50">
+                                    <i class="bi bi-file-earmark-x display-1"></i>
+                                    <p class="mt-2 fw-bold">Berkas tidak ditemukan</p>
                                 </div>
                             @endif
                         </div>

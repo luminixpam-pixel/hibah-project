@@ -114,19 +114,6 @@
         </table>
     </div>
 
-    {{-- 🔁 PREV / NEXT --}}
-    <div class="d-flex justify-content-between mt-3">
-        <a href="{{ route('monitoring.proposalDitolak') }}"
-           class="btn btn-outline-success btn-sm">
-            &laquo; Proposal Ditolak
-        </a>
-
-        <a href="{{ route('monitoring.hasilRevisi') }}"
-           class="btn btn-outline-success btn-sm">
-            Hasil Revisi &raquo;
-        </a>
-    </div>
-
 </div>
 
 @endsection

@@ -10,46 +10,49 @@ use Illuminate\Support\Facades\Auth;
 class LaporanKemajuanController extends Controller
 {
     public function index(Request $request)
-    {
-        $search = $request->input('search');
+{
+    $search = $request->input('search');
+    $user = Auth::user();
 
-        // ✅ mulai query dasar
-        $query = Proposal::with(['user', 'reviewers']);
+    // 1. Query Dasar untuk Tabel
+    $query = Proposal::with(['user', 'reviewers']);
 
-        // ✅ FILTER biar riwayat tidak campur
-        // - pengaju: hanya proposal miliknya
-        // - reviewer: hanya proposal yang ditugaskan ke dia
-        // - admin: lihat semua (tidak difilter)
-        if (Auth::user()->role === 'pengaju') {
-            $query->where('user_id', Auth::id());
-        } elseif (Auth::user()->role === 'reviewer') {
-            $query->whereHas('reviewers', function ($q) {
-                $q->where('users.id', Auth::id());
-            });
-        }
-
-        // ✅ SEARCH harus digroup, biar orWhereHas gak "nembus" filter di atas
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('judul', 'like', "%{$search}%")
-                  ->orWhereHas('user', function ($u) use ($search) {
-                      $u->where('name', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        $proposals = $query->latest()->paginate(10);
-
-        // ✅ untuk dropdown upload (pengaju saja)
-        $myProposals = null;
-        if (Auth::user()->role === 'pengaju') {
-            $myProposals = Proposal::where('user_id', Auth::id())
-                ->latest()
-                ->get(['id', 'judul']);
-        }
-
-        return view('reviewer.laporan-kemajuan', compact('proposals', 'myProposals'));
+    // 2. Filter Role (Security Filter)
+    if ($user->role === 'pengaju') {
+        $query->where('user_id', $user->id);
+    } elseif ($user->role === 'reviewer') {
+        $query->whereHas('reviewers', function ($q) use ($user) {
+            $q->where('users.id', $user->id);
+        });
     }
+
+    // 3. Search Logic
+    if ($search) {
+        $query->where(function ($q) use ($search) {
+            $q->where('judul', 'like', "%{$search}%")
+              ->orWhereHas('user', function ($u) use ($search) {
+                  $u->where('name', 'like', "%{$search}%");
+              });
+        });
+    }
+
+    $proposals = $query->latest()->paginate(10);
+
+    // 4. Data untuk Dropdown Pilih Proposal (Khusus Pengaju)
+    $myProposals = null;
+    if ($user->role === 'pengaju') {
+        $myProposals = Proposal::where('user_id', $user->id)
+            ->where('status',) // Pastikan hanya yang disetujui
+            ->latest()
+            ->get(['id', 'judul']);
+    }
+
+    return view('reviewer.laporan-kemajuan', [
+        'proposals' => $proposals,
+        'myProposals' => $myProposals,
+        'user' => $user, // Mengirim data user login untuk Profile
+    ]);
+}
 
     public function store(Request $request)
     {
@@ -62,9 +65,10 @@ class LaporanKemajuanController extends Controller
         if ($request->hasFile('file')) {
 
             // ✅ ambil proposal yang dipilih + pastikan milik user login
-            $proposal = Proposal::where('id', $request->proposal_id)
-                ->where('user_id', Auth::id())
-                ->first();
+           $proposal = Proposal::where('id', $request->proposal_id)
+    ->whereHas('user', function($q) {
+        $q->where('username', Auth::user()->username);
+    })->first();
 
             if (!$proposal) {
                 return redirect()->back()->with('error', 'Proposal tidak valid / bukan milik Anda.');
@@ -105,4 +109,5 @@ class LaporanKemajuanController extends Controller
 
         return Storage::disk('public')->download($proposal->file_laporan);
     }
+
 }

@@ -135,38 +135,50 @@
         @if(Auth::user()->role !== 'admin')
         <div class="form-section mb-5">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold text-dark mb-0">Submit Laporan Baru</h5>
+                <h5 class="fw-bold text-dark mb-0">Submit Laporan kemajuan</h5>
 
                 {{-- ✅ LINK DOWNLOAD DINAMIS DARI DATABASE --}}
                 @php
                     $template = \App\Models\Template::where('jenis', 'laporan_kemajuan')->first();
                 @endphp
 
-                @if($template && $template->file_url)
-                    <a href="{{ $template->file_url }}" class="btn btn-sm btn-outline-success border-2 fw-bold px-3" style="border-radius: 8px;" download>
-                        <i class="bi bi-file-earmark-arrow-down-fill me-1"></i> Unduh Template: {{ $template->nama_template }}
+               @if($template && $template->file_path)
+                {{-- Gunakan asset() jika file ada di folder public, atau Storage::url() jika di storage/app/public --}}
+                <a href="{{ asset('storage/' . $template->file_path) }}"
+                class="btn btn-sm btn-outline-success border-2 fw-bold px-3"
+                style="border-radius: 8px;"
+                download="{{ $template->nama_template }}">
+                    <i class="bi bi-file-earmark-arrow-down-fill me-1"></i>
+                    Unduh Template laporan kemajuan
                     </a>
-                @else
-                    <span class="text-muted small fst-italic"><i class="bi bi-info-circle me-1"></i> Template belum tersedia.</span>
-                @endif
+            @else
+                <span class="text-muted small fst-italic">
+                    <i class="bi bi-info-circle me-1"></i> Template belum tersedia.
+                </span>
+            @endif
             </div>
 
             <form action="{{ route('laporan.kemajuan.store') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
                 @csrf
                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold small text-muted">Pilih Judul Proposal</label>
-                        <select name="proposal_id" class="form-select @error('proposal_id') is-invalid @enderror" required style="border-radius: 10px; padding: 10px;">
-                            <option value="">-- Pilih Proposal --</option>
-                            @foreach($myProposals as $p)
-                                <option value="{{ $p->id }}" {{ old('proposal_id') == $p->id ? 'selected' : '' }}>
-                                    {{ Str::limit($p->judul, 80) }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold small text-muted">Berkas Laporan (PDF/DOCX)</label>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold small text-muted">Pilih Judul Proposal</label>
+                    <select name="proposal_id" class="form-select @error('proposal_id') is-invalid @enderror" required style="border-radius: 10px; padding: 10px;">
+                        <option value="">-- Pilih Proposal --</option>
+
+                        {{-- Gunakan $proposals atau $myProposals sesuai variabel dari Controller --}}
+                        @foreach ($proposals as $proposal)
+                            <option value="{{ $proposal->id }}" {{ old('proposal_id') == $proposal->id ? 'selected' : '' }}>
+                                {{ $proposal->judul }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    @error('proposal_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                     <label class="form-label fw-bold small text-muted">Berkas Laporan (PDF/DOCX)</label>
                         <input type="file" name="file" class="form-control @error('file') is-invalid @enderror" accept=".pdf,.doc,.docx" required style="border-radius: 10px; padding: 10px;">
                     </div>
                     <div class="col-12 mb-4">

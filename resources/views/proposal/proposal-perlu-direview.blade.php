@@ -80,6 +80,9 @@
             </span>
         </div>
     </div>
+    <h4 class="page-title mb-1">
+    {{ auth()->user()->role === 'admin' ? 'Manajemen Plotting Reviewer' : 'Tugas Review Saya' }}
+</h4>
 
     <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 12px;">
         <div class="table-responsive">

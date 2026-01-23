@@ -161,65 +161,49 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+<form action="{{ route('admin.user.update', $user->id) }}" method="POST">
+    @csrf
+    @method('PUT')
+    <div class="modal-body p-4">
 
-            <form action="{{ route('admin.user.update', $user->id) }}" method="POST">
-                @csrf
-                @method('PUT')
-                <div class="modal-body p-4">
+        {{-- Field Email (Bisa diedit keduanya) --}}
+        <div class="mb-3">
+            <label class="label-minimal">Email Aktif</label>
+            <input type="email" name="email" class="form-control bg-light border-0 py-3" style="border-radius: 10px;" value="{{ $user->email }}" required>
+        </div>
 
-                    @if(Auth::user()->role === 'admin')
-                        {{-- TAMPILAN KHUSUS ADMIN --}}
-                        <div class="mb-3">
-                            <label class="label-minimal">Username Admin</label>
-                            <input type="text" name="username" class="form-control bg-light border-0 py-3" style="border-radius: 10px;" value="{{ $user->username }}" required>
-                        </div>
+        @if(Auth::user()->role === 'admin')
+            {{-- Field Khusus Admin: Password --}}
+            <div class="mb-3">
+                <label class="label-minimal text-danger">Ganti Password Baru</label>
+                <input type="password" name="password" class="form-control bg-light border-0 py-3" style="border-radius: 10px;" placeholder="Isi jika ingin ganti">
+            </div>
+        @else
+            {{-- Field Khusus User: NIDN & Fakultas --}}
+            <div class="mb-3">
+                <label class="label-minimal">NIDN / NIP</label>
+                <input type="text" name="nidn" class="form-control bg-light border-0 py-3" style="border-radius: 10px;" value="{{ $user->nidn }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="label-minimal">Fakultas</label>
+                <select name="fakultas" class="form-select bg-light border-0 py-3" style="border-radius: 10px;" required>
+                    <option value="">-- Pilih Fakultas --</option>
+                    @foreach(($list_fakultas ?? []) as $f)
+                        <option value="{{ $f->nama_fakultas }}" {{ $user->fakultas == $f->nama_fakultas ? 'selected' : '' }}>
+                            {{ $f->nama_fakultas }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
 
-                        <div class="mb-3">
-                            <label class="label-minimal">Email (Untuk Pemulihan/Reset)</label>
-                            <input type="email" name="email" class="form-control bg-light border-0 py-3" style="border-radius: 10px;" value="{{ $user->email }}" required>
-                            <small class="text-muted" style="font-size: 0.7rem;">*Email ini digunakan jika Anda lupa kata sandi.</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="label-minimal">NIDN / NIP</label>
-                            <input type="text" name="nidn" class="form-control bg-light border-0 py-3" style="border-radius: 10px;" value="{{ $user->nidn }}">
-                        </div>
-
-                        <div class="mb-4 pt-3 border-top">
-                            <label class="label-minimal text-danger">Ganti Password Baru</label>
-                            <input type="password" name="password" class="form-control bg-light border-0 py-3" style="border-radius: 10px;" placeholder="Isi hanya jika ingin ganti password">
-                        </div>
-                    @else
-                        {{-- TAMPILAN UNTUK USER BIASA (Reviewer/Pengaju) --}}
-                        <div class="mb-3">
-                            <label class="label-minimal">Email Aktif</label>
-                            <input type="email" name="email" class="form-control bg-light border-0 py-3" style="border-radius: 10px;" value="{{ $user->email }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="label-minimal">NIDN / NIP</label>
-                            <input type="text" name="nidn" class="form-control bg-light border-0 py-3" style="border-radius: 10px;" value="{{ $user->nidn }}">
-                        </div>
-                        <div class="mb-4">
-                            <label class="label-minimal">Fakultas</label>
-                            <select name="fakultas" class="form-select bg-light border-0 py-3" style="border-radius: 10px;" required>
-                                <option value="">-- Pilih Fakultas --</option>
-                                @foreach(($list_fakultas ?? []) as $f)
-                                    <option value="{{ $f->nama_fakultas }}" {{ $user->fakultas == $f->nama_fakultas ? 'selected' : '' }}>
-                                        {{ $f->nama_fakultas }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
-
-                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm" style="border-radius: 12px;">
-                        Simpan Perubahan
-                    </button>
-                </div>
-            </form>
+        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm" style="border-radius: 12px;">
+            Simpan Perubahan
+        </button>
+    </div>
+</form>
         </div>
     </div>
 </div>
 
 @endsection
-  

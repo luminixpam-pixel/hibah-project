@@ -234,12 +234,7 @@
         </div>
 
         {{-- NAVIGATION BOTTOM --}}
-        <div class="d-flex justify-content-between mt-4">
-            <a href="{{ route('monitoring.proposalSedangDireview') }}" class="btn btn-outline-success nav-btn">
-                <i class="bi bi-arrow-left me-1"></i> Sedang Direview
-            </a>
-            <span class="text-muted small">Universitas YARSI &copy; {{ date('Y') }}</span>
-        </div>
+
     </div>
 </div>
 @endsection

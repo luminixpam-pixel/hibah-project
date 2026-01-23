@@ -105,31 +105,41 @@ class NotificationController extends Controller
         return response()->json(['count' => $count]);
     }
 
-    public function fetch()
-    {
-        if (Auth::user()->role === 'reviewer') {
-            try {
-                self::generateDeadlineNotifsForReviewer(Auth::id());
-            } catch (\Throwable $e) {
-                Log::error('deadline notif error (fetch): ' . $e->getMessage());
-            }
-        }
-
-        $notifications = Notification::where('user_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->limit(50) // ✅ biar notif lama (waktu masih pengaju) gak “ketutup”
-            ->get();
-
-        $notifications->transform(function ($notif) {
-            if (empty($notif->title)) {
-                $notif->title = 'Proposal Baru Ditugaskan';
-            }
-            return $notif;
-        });
-
-        return response()->json($notifications);
+   public function fetch()
+{
+    // 1. Pastikan User Login
+    if (!Auth::check()) {
+        return response()->json([]);
     }
 
+    $user = Auth::user();
+
+    // 2. Jalankan logika khusus Reviewer jika memang dia reviewer
+    if ($user->role === 'reviewer') {
+        try {
+            self::generateDeadlineNotifsForReviewer($user->id);
+        } catch (\Throwable $e) {
+            Log::error('deadline notif error (fetch): ' . $e->getMessage());
+        }
+    }
+
+    // 3. AMBIL SEMUA NOTIFIKASI (Baik pengaju maupun reviewer)
+    // Kita hapus filter yang mungkin menghambat
+    $notifications = Notification::where('user_id', $user->id)
+        ->orderBy('created_at', 'desc')
+        ->limit(50)
+        ->get();
+
+    // 4. Transform data agar tidak ada title yang kosong
+    $notifications->transform(function ($notif) {
+        if (empty($notif->title)) {
+            $notif->title = 'Pemberitahuan Sistem';
+        }
+        return $notif;
+    });
+
+    return response()->json($notifications);
+}
     public function markAllAsRead()
     {
         Notification::where('user_id', Auth::id())
@@ -271,4 +281,5 @@ class NotificationController extends Controller
             'warning'
         );
     }
+
 }

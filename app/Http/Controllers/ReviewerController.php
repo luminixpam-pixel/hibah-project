@@ -145,31 +145,27 @@ class ReviewerController extends Controller
     }
 
     /* ===================== REVIEWER ===================== */
-    public function isiReview($id)
-    {
-        $proposal = Proposal::with('reviewers')->findOrFail($id);
+   public function isiReview($id)
+{
+    $proposal = Proposal::with('reviewers')->findOrFail($id);
 
-        // validasi reviewer
-        if (Auth::user()->role === 'reviewer') {
-            if (!$proposal->reviewers->pluck('id')->contains(Auth::id())) {
-                abort(403, 'Anda bukan reviewer yang ditugaskan.');
-            }
+    // Ambil ID numerik dari user yang sedang login
+    $userId = Auth::user()->id;
+
+    // validasi reviewer
+    if (Auth::user()->role === 'reviewer') {
+        // Cek kecocokan ID numerik
+        $isAssigned = $proposal->reviewers->pluck('id')->contains($userId);
+
+        if (!$isAssigned) {
+            abort(403, 'Anda bukan reviewer yang ditugaskan. (ID Anda: '.$userId.')');
         }
-
-        // 🔔 TANDAI NOTIFIKASI CUSTOM SEBAGAI DIBACA
-        Notification::where('user_id', Auth::id())
-            ->where('proposal_id', $proposal->id)
-            ->where('is_read', false)
-            ->update(['is_read' => true]);
-
-        // 🔄 Update status proposal
-        if ($proposal->status === 'Perlu Direview') {
-            $proposal->update(['status' => 'Sedang Direview']);
-        }
-
-        return view('reviewer.isi-review', compact('proposal'));
     }
 
+    // ... sisa kode Anda (Update notifikasi & status)
+
+    return view('reviewer.isi-review', compact('proposal'));
+}
    public function submitReview(Request $request, $id)
 {
     $proposal = Proposal::with('reviewers')->findOrFail($id);
@@ -203,7 +199,7 @@ class ReviewerController extends Controller
     // 4. Simpan ke Database
     Review::create([
         'proposal_id' => $proposal->id,
-        'reviewer_id' => Auth::id(),
+        'reviewer_id' => Auth::user()->id,
         'nilai_1'     => $request->nilai_1,
         'nilai_2'     => $request->nilai_2,
         'nilai_3'     => $request->nilai_3,
@@ -235,4 +231,6 @@ private function updateProposalStatus($proposal)
         $proposal->update(['status' => 'Sedang Direview']);
     }
 }
+
 }
+

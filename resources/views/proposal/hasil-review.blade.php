@@ -105,18 +105,7 @@
         </table>
     </div>
 
-    {{-- 🔁 PREV / NEXT --}}
-    <div class="d-flex justify-content-between mt-3">
-        <a href="{{ route('monitoring.proposalDirevisi') }}"
-           class="btn btn-outline-success btn-sm">
-            &laquo; Proposal Direvisi
-        </a>
 
-        <a href="{{ route('monitoring.proposalDikirim') }}"
-           class="btn btn-outline-success btn-sm">
-            Daftar Proposal &raquo;
-        </a>
-    </div>
 
 </div>
 
