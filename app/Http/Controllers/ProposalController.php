@@ -269,6 +269,20 @@ public function update(Request $request, $id)
             'status' => 'Sedang Direview'
         ]);
 
+
+
+        // ===============================
+        // ✅ NOTIF KE REVIEWER (langsung muncul di bell)
+        // ===============================
+        $deadlineWib = Carbon::parse($proposal->review_deadline)->timezone('Asia/Jakarta');
+
+        $title = 'Tugas Review Proposal';
+        $message = 'Anda ditugaskan mereview proposal "' . ($proposal->judul ?? '-') . '". ' .
+            'Tenggat penilaian: ' . $deadlineWib->translatedFormat('d M Y H:i') . ' WIB.';
+
+        NotificationHelper::send((int)$request->reviewer_1, $title, $message, 'info', $proposal->id);
+        NotificationHelper::send((int)$request->reviewer_2, $title, $message, 'info', $proposal->id);
+
         return back()->with('success', 'Berhasil! Reviewer telah ditugaskan.');
     } catch (\Exception $e) {
         return back()->withInput()->with('error', 'Database Error: ' . $e->getMessage());
@@ -511,5 +525,62 @@ public function uploadLaporanAkhir(Request $request, $id)
     return back()->with('success', 'Laporan Akhir berhasil diunggah.');
 }
 
+
+
+    // ===============================
+    // ✅ FIX ROUTE MONITORING
+    // ===============================
+    public function dikirim(Request $request)
+    {
+        $tahun = $request->get('tahun', date('Y'));
+        $user = auth()->user();
+        $role = $user->role;
+
+        $list_fakultas = Fakultas::all();
+        $all_dosen = User::whereIn('role', ['pengaju', 'reviewer'])->get();
+
+        // --- LOGIKA MASA HIBAH ---
+        $now = now();
+        $isMasaHibah = DB::table('hibah_periods')
+            ->whereDate('start_date', '<=', $now)
+            ->whereDate('end_date', '>=', $now)
+            ->exists();
+        // -------------------------
+
+        $query = Proposal::with(['fakultas', 'user'])
+            ->whereYear('created_at', $tahun)
+            ->where('status', 'Dikirim');
+
+        if ($role === 'pengaju' || $role === 'reviewer') {
+            $query->where('user_id', $user->id);
+        }
+
+        $proposals = $query->latest()->get();
+
+        return view('proposal.daftar_proposal', compact(
+            'proposals',
+            'tahun',
+            'role',
+            'list_fakultas',
+            'all_dosen',
+            'isMasaHibah'
+        ));
+    }
+
+    // Alias biar nama method di route aman (kalau route pakai sedangDireview/disetujui/ditolak)
+    public function sedangDireview()
+    {
+        return $this->proposalSedangDireview();
+    }
+
+    public function disetujui()
+    {
+        return $this->proposalDisetujui();
+    }
+
+    public function ditolak()
+    {
+        return $this->proposalDitolak();
+    }
 
 }

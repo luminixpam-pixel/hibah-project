@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 
 class NotificationHelper
 {
-    // Kirim ke semua user (opsional by role)
+    // Kirim ke semua user (by role)
     public static function sendToAll($title, $message = null, $type = 'info', $role = null, $proposalId = null)
     {
         if (!Schema::hasTable('notifications')) return;
@@ -41,7 +41,7 @@ class NotificationHelper
         try {
             Notification::create([
                 'user_id'     => $userId,
-                'proposal_id' => $proposalId, // ✅ tambahan aman (boleh null)
+                'proposal_id' => $proposalId,
                 'title'       => $title,
                 'message'     => $message,
                 'type'        => $type,

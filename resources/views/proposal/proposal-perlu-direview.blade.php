@@ -1,3 +1,4 @@
+{{-- resources/views/monitoring/proposal-perlu-direview.blade.php --}}
 @extends('layouts.app')
 
 @section('content')
@@ -81,7 +82,7 @@
         </div>
     </div>
     <h4 class="page-title mb-1">
-    {{ auth()->user()->role === 'admin' ? 'Manajemen Plotting Reviewer' : 'Tugas Review Saya' }}
+    {{ auth()->user()->role === 'admin' ? 'Manajemen Reviewer' : 'Tugas Review Saya' }}
 </h4>
 
     <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 12px;">
@@ -90,7 +91,7 @@
                 <thead>
                     <tr>
                         <th class="text-center" width="50">No</th>
-                        <th style="min-width: 250px;">{{ auth()->user()->role === 'admin' ? 'Setting Reviewer' : 'Status Review' }}</th>
+                        <th style="min-width: 250px;">{{ auth()->user()->role === 'admin' ? 'Reviewer' : 'Status Review' }}</th>
                         <th style="min-width: 180px;">Detail Pengusul</th>
                         <th style="min-width: 280px;">Judul & Dokumen</th>
                         <th class="text-center" style="min-width: 150px;">Tenggat</th>
@@ -105,8 +106,8 @@
                             $isOverdue = $dbDeadline ? now()->gt($dbDeadline) : false;
                             $isUrgent = $dbDeadline ? (now()->diffInHours($dbDeadline) <= 24 && !$isOverdue) : false;
 
-                            // Cek apakah user saat ini sudah memberikan review (untuk Reviewer)
-                            $hasReviewed = $proposal->reviews->where('reviewer_id', auth()->id())->first();
+                            // ✅ FIX: pakai users.id (angka) biar reviewer yg sudah nilai tidak bisa nilai ulang
+                            $hasReviewed = $proposal->reviews->where('reviewer_id', auth()->user()->id)->first();
                         @endphp
                         <tr>
                             <td class="text-center fw-bold text-muted">{{ $index + 1 }}</td>
@@ -122,7 +123,7 @@
                                                 </span>
                                                 <button class="btn btn-sm btn-link p-0 text-decoration-none small fw-bold"
                                                         onclick="document.getElementById('form-{{ $proposal->id }}').classList.toggle('d-none')">
-                                                    Ubah Plotting
+                                                    Ubah Tenggat & Reviewer
                                                 </button>
                                             </div>
                                             @foreach($proposal->reviewers as $rev)
@@ -214,11 +215,18 @@
                             {{-- COLUMN 5: AKSI --}}
                             <td class="text-center">
                                 @if(auth()->user()->role === 'reviewer')
-                                    <a href="{{ route('reviewer.isi-review', $proposal->id) }}"
-                                       class="btn btn-action {{ $hasReviewed ? 'btn-outline-secondary' : 'btn-primary shadow-sm' }} w-100">
-                                        <i class="bi {{ $hasReviewed ? 'bi-eye' : 'bi-pencil-square' }} me-1"></i>
-                                        {{ $hasReviewed ? 'Lihat Nilai' : 'Beri Nilai' }}
-                                    </a>
+                                    @if($hasReviewed)
+                                        {{-- ✅ sudah memberi nilai => tidak bisa menilai file yang sama --}}
+                                        <button type="button" class="btn btn-action btn-outline-secondary w-100" disabled>
+                                            <i class="bi bi-lock-fill me-1"></i> Sudah Dinilai
+                                        </button>
+                                    @else
+                                        <a href="{{ route('reviewer.isi-review', $proposal->id) }}"
+                                           class="btn btn-action btn-primary shadow-sm w-100">
+                                            <i class="bi bi-pencil-square me-1"></i>
+                                            Beri Nilai
+                                        </a>
+                                    @endif
                                 @else
                                     <a href="{{ route('proposal.tinjau', $proposal->id) }}" class="btn btn-action btn-light border w-100">
                                         <i class="bi bi-search me-1"></i> Tinjau

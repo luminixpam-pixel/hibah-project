@@ -77,13 +77,16 @@
                         @endphp
                         <tr>
                             <td class="ps-4">
-                                <a href="{{ route('admin.dosen.detail', $dosen->id) }}" class="text-decoration-none d-flex align-items-center">
-                                    <div class="avatar-sm me-3 bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center">
-                                        {{ strtoupper(substr($dosen->name, 0, 1)) }}
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-dark">{{ $dosen->name }}</div>
-                                        <div class="text-muted x-small">ID: {{ $dosen->nidn ?? 'N/A' }}</div>
+                                {{-- INI YANG DIBUAT KLIK AKTIF --}}
+                                <a href="{{ route('admin.dosen.detail', $dosen->id) }}" class="text-decoration-none">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm me-3 bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center">
+                                            {{ strtoupper(substr($dosen->name, 0, 1)) }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">{{ $dosen->name }}</div>
+                                            <div class="text-muted x-small">ID: {{ $dosen->nidn ?? 'N/A' }}</div>
+                                        </div>
                                     </div>
                                 </a>
                             </td>

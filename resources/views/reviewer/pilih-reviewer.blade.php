@@ -27,7 +27,7 @@
         font-size: 13px;
     }
     .col-aksi {
-        width: 220px; /* ✅ biar muat tombol */
+        width: 220px;
         white-space: nowrap;
     }
 </style>
@@ -88,8 +88,8 @@
 
                     <td class="col-aksi">
                         @if($roleUser === 'reviewer')
-                            {{-- ✅ tombol berhentikan reviewer --}}
-                            <form action="{{ route('reviewer.remove', $u->id) }}"
+                            {{-- ✅ reviewer -> pengaju --}}
+                            <form action="{{ route('admin.reviewer.remove', $u->id) }}"
                                   method="POST"
                                   onsubmit="return confirm('Yakin hentikan {{ $u->name }} sebagai reviewer? Role akan dikembalikan jadi Pengaju.')"
                                   class="d-inline">
@@ -99,6 +99,7 @@
                                 </button>
                             </form>
                         @else
+                            {{-- ✅ pengaju -> reviewer --}}
                             <form action="{{ route('admin.reviewer.set', $u->id) }}"
                                   method="POST"
                                   onsubmit="return confirm('Yakin jadikan {{ $u->name }} sebagai reviewer?')"

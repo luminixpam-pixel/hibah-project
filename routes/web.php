@@ -78,6 +78,11 @@ Route::controller(ProposalController::class)->group(function () {
         Route::get('/notifications/fetch', 'fetch')->name('notifications.fetch');
         Route::get('/notifications/count', 'count')->name('notifications.count');
         Route::post('/notifications/mark-all-read', 'markAllAsRead')->name('notifications.markAllAsRead');
+
+        // ✅ TAMBAHAN: endpoint khusus AJAX (bypass CSRF) + name unik (biar gak ketabrak route dobel)
+        Route::post('/notifications/mark-all-read-ajax', 'markAllAsRead')
+            ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+            ->name('notifications.markAllAsReadAjax');
     });
 });
 
@@ -258,7 +263,3 @@ Route::get('/api/notifications', function() {
             ];
         });
 })->middleware('auth');
-
-
-
-

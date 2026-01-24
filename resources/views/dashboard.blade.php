@@ -1,8 +1,272 @@
+{{-- resources/views/dashboard.blade.php --}}
 @extends('layouts.app')
 
 @section('content')
 
 <div class="container mt-4 mb-5">
+
+    {{-- ✅ FIX: fallback hitung total kartu kalau variabel dari controller belum keisi / salah --}}
+    @php
+        // =========================
+        // 0) PASTIIN SEMUA VARIABEL ADA (BIAR GAK UNDEFINED)
+        // =========================
+        $daftarProposalCount   = $daftarProposalCount   ?? 0;
+
+        $reviewSelesaiCount    = $reviewSelesaiCount    ?? 0;
+        $perluDireviewCount    = $perluDireviewCount    ?? 0;
+        $sedangDireviewCount   = $sedangDireviewCount   ?? 0;
+
+        $direvisiFileCount     = $direvisiFileCount     ?? null;
+        $direvisiCount         = $direvisiCount         ?? 0;
+
+        $disetujuiCount        = $disetujuiCount        ?? 0;
+        $ditolakCount          = $ditolakCount          ?? 0;
+        $hasilRevisiCount      = $hasilRevisiCount      ?? 0;
+
+        $authUser   = auth()->user();
+        $currentRole = $role ?? ($authUser->role ?? null);
+
+        // =========================
+        // ✅ DETEKSI NAMA TABEL & KOLOM (biar gak ngira tabelnya 'proposals')
+        // =========================
+        $proposalTable = (new \App\Models\Proposal)->getTable();
+
+        $hasStatusPendanaan = false;
+        try {
+            $hasStatusPendanaan = \Illuminate\Support\Facades\Schema::hasColumn($proposalTable, 'status_pendanaan');
+        } catch (\Throwable $e) {
+            $hasStatusPendanaan = false;
+        }
+
+        // =========================
+        // Helper filter role (biar query card sama seperti halaman sesuai role)
+        // =========================
+        $applyRoleFilter = function ($query) use ($currentRole, $authUser) {
+            if ($currentRole === 'reviewer') {
+                $query->whereHas('reviewers', function ($q) use ($authUser) {
+                    $q->where('users.id', $authUser->id);
+                });
+            } elseif ($currentRole !== 'admin') {
+                $query->where(function ($q) use ($authUser) {
+                    $q->where('user_id', $authUser->id);
+                    if (!empty($authUser->username)) {
+                        $q->orWhere('user_id', $authUser->username);
+                    }
+                });
+            }
+            return $query;
+        };
+
+        // =========================
+        // Helper keputusan: count "Direvisi/Disetujui/Ditolak" harus sama dengan isi halaman
+        // ✅ cek status + (status_pendanaan kalau ada)
+        // ✅ TRIM + LOWER biar aman kalau ada spasi / kapital beda
+        // ✅ LIKE biar aman kalau ada variasi value (contoh: "Direvisi " / "Direvisi (Perbaikan)")
+        // =========================
+        $countByDecision = function (string $decision) use ($applyRoleFilter, $hasStatusPendanaan) {
+            $base = \App\Models\Proposal::query();
+            $base = $applyRoleFilter($base);
+
+            $needle = strtolower(trim((string) $decision));
+            $like   = '%' . $needle . '%';
+
+            $base->where(function ($qq) use ($needle, $like, $hasStatusPendanaan) {
+                // status
+                $qq->whereRaw('LOWER(TRIM(status)) = ?', [$needle])
+                   ->orWhereRaw('LOWER(status) LIKE ?', [$like]);
+
+                // status_pendanaan (kalau ada kolomnya)
+                if ($hasStatusPendanaan) {
+                    $qq->orWhereRaw('LOWER(TRIM(status_pendanaan)) = ?', [$needle])
+                       ->orWhereRaw('LOWER(status_pendanaan) LIKE ?', [$like]);
+                }
+            });
+
+            return (clone $base)->count();
+        };
+
+        // ==========================================================
+        // ✅ 1) DAFTAR MONITORING PROPOSAL (sesuai halaman monitoring.proposalDikirim)
+        // Prinsip: total proposal yg bisa dilihat user sesuai role (TANPA BATAS)
+        // ==========================================================
+        try {
+            $qMonitoring = \App\Models\Proposal::query();
+            $qMonitoring = $applyRoleFilter($qMonitoring);
+
+            $dbMonitoringCount = (clone $qMonitoring)->count();
+
+            if ((int)$daftarProposalCount !== (int)$dbMonitoringCount) {
+                $daftarProposalCount = $dbMonitoringCount;
+            }
+        } catch (\Throwable $e) {
+            // fallback: biarin value yg ada
+        }
+
+        // ==========================================================
+        // ✅ 2) REVIEW SELESAI (sesuai halaman monitoring.reviewSelesai)
+        // ✅ PERMINTAAN: yang dihitung di CARD hanya proposal yang SUDAH DISETUJUI
+        // Prinsip: selesai kalau reviews_count >= reviewers_count DAN keputusan = Disetujui
+        // ==========================================================
+        try {
+            $needleApprove = 'disetujui';
+            $likeApprove   = '%'.$needleApprove.'%';
+
+            $qReviewSelesai = \App\Models\Proposal::query()
+                ->withCount(['reviews', 'reviewers'])
+                ->whereHas('reviewers')
+                ->havingRaw('reviews_count >= reviewers_count')
+                // ✅ hanya yang disetujui (status OR status_pendanaan)
+                ->where(function ($qq) use ($needleApprove, $likeApprove, $hasStatusPendanaan) {
+                    $qq->whereRaw('LOWER(TRIM(status)) = ?', [$needleApprove])
+                       ->orWhereRaw('LOWER(status) LIKE ?', [$likeApprove]);
+
+                    if ($hasStatusPendanaan) {
+                        $qq->orWhereRaw('LOWER(TRIM(status_pendanaan)) = ?', [$needleApprove])
+                           ->orWhereRaw('LOWER(status_pendanaan) LIKE ?', [$likeApprove]);
+                    }
+                });
+
+            $qReviewSelesai = $applyRoleFilter($qReviewSelesai);
+
+            $dbReviewSelesaiCount = (clone $qReviewSelesai)->count();
+
+            if ((int)$reviewSelesaiCount !== (int)$dbReviewSelesaiCount) {
+                $reviewSelesaiCount = $dbReviewSelesaiCount;
+            }
+        } catch (\Throwable $e) {
+            // fallback yang tetap sesuai konsep + tetap hanya disetujui
+            try {
+                $needleApprove = 'disetujui';
+                $likeApprove   = '%'.$needleApprove.'%';
+
+                $rows = \App\Models\Proposal::query()
+                    ->withCount(['reviews', 'reviewers'])
+                    ->whereHas('reviewers')
+                    ->where(function ($qq) use ($needleApprove, $likeApprove, $hasStatusPendanaan) {
+                        $qq->whereRaw('LOWER(TRIM(status)) = ?', [$needleApprove])
+                           ->orWhereRaw('LOWER(status) LIKE ?', [$likeApprove]);
+
+                        if ($hasStatusPendanaan) {
+                            $qq->orWhereRaw('LOWER(TRIM(status_pendanaan)) = ?', [$needleApprove])
+                               ->orWhereRaw('LOWER(status_pendanaan) LIKE ?', [$likeApprove]);
+                        }
+                    });
+
+                $rows = $applyRoleFilter($rows)->get(['id']);
+
+                $reviewSelesaiCount = $rows->filter(function ($p) {
+                    return (int)$p->reviews_count >= (int)$p->reviewers_count;
+                })->count();
+
+            } catch (\Throwable $e2) {
+                $reviewSelesaiCount = $reviewSelesaiCount ?? 0;
+            }
+        }
+
+        // ==========================================================
+        // ✅ 3) DAFTAR REVIEW PROPOSAL (sesuai halaman monitoring.proposalPerluDireview)
+        // Admin: pipeline yg BELUM selesai (reviewers_count=0 atau reviews_count < reviewers_count)
+        // Reviewer: tugas yg belum dia review
+        // ==========================================================
+        try {
+            if ($currentRole === 'admin') {
+                $qPerlu = \App\Models\Proposal::query()
+                    ->whereIn('status', [
+                        'Dikirim',
+                        'Menunggu Pemilihan',
+                        'Perlu Direview',
+                        'Sedang Direview',
+                    ])
+                    ->withCount(['reviews', 'reviewers'])
+                    ->havingRaw('(reviewers_count = 0) OR (reviews_count < reviewers_count)');
+
+                $dbPerlu = (clone $qPerlu)->count();
+
+                if ((int)$perluDireviewCount !== (int)$dbPerlu) {
+                    $perluDireviewCount = $dbPerlu;
+                }
+
+            } elseif ($currentRole === 'reviewer') {
+                $qPerlu = \App\Models\Proposal::query()
+                    ->whereIn('status', ['Dikirim', 'Perlu Direview', 'Sedang Direview'])
+                    ->whereHas('reviewers', function ($q) use ($authUser) {
+                        $q->where('users.id', $authUser->id);
+                    })
+                    ->whereDoesntHave('reviews', function ($q) use ($authUser) {
+                        $q->where('reviewer_id', $authUser->id);
+                    });
+
+                $dbPerlu = (clone $qPerlu)->count();
+
+                if ((int)$perluDireviewCount !== (int)$dbPerlu) {
+                    $perluDireviewCount = $dbPerlu;
+                }
+            }
+        } catch (\Throwable $e) {
+            if ($currentRole === 'admin') {
+                try {
+                    $rows = \App\Models\Proposal::query()
+                        ->whereIn('status', [
+                            'Dikirim',
+                            'Menunggu Pemilihan',
+                            'Perlu Direview',
+                            'Sedang Direview',
+                        ])
+                        ->withCount(['reviews', 'reviewers'])
+                        ->get(['id']);
+
+                    $perluDireviewCount = $rows->filter(function ($p) {
+                        return ((int)$p->reviewers_count === 0) || ((int)$p->reviews_count < (int)$p->reviewers_count);
+                    })->count();
+                } catch (\Throwable $e2) {
+                    $perluDireviewCount = $perluDireviewCount ?? 0;
+                }
+            }
+        }
+
+        // ==========================================================
+        // ✅ 4) SEDANG DIREVIEW (sesuai route monitoring.proposalSedangDireview)
+        // ==========================================================
+        try {
+            $qSedang = \App\Models\Proposal::query()->where('status', 'Sedang Direview');
+            $qSedang = $applyRoleFilter($qSedang);
+
+            $dbSedang = (clone $qSedang)->count();
+
+            if ((int)$sedangDireviewCount !== (int)$dbSedang) {
+                $sedangDireviewCount = $dbSedang;
+            }
+        } catch (\Throwable $e) {
+            // fallback: biarin
+        }
+
+        // ==========================================================
+        // ✅ 5) DIREVISI / DISETUJUI / DITOLAK (sesuai masing-masing halaman)
+        // IMPORTANT: pakai status + status_pendanaan (trim/lower) biar gak beda
+        // ==========================================================
+        try {
+            // DIREVISI
+            $dbDirevisi = $countByDecision('Direvisi');
+            $direvisiFileCount = $dbDirevisi;
+
+            // DISETUJUI
+            $dbDisetujui = $countByDecision('Disetujui');
+            if ((int)$disetujuiCount !== (int)$dbDisetujui) {
+                $disetujuiCount = $dbDisetujui;
+            }
+
+            // DITOLAK
+            $dbDitolak = $countByDecision('Ditolak');
+            if ((int)$ditolakCount !== (int)$dbDitolak) {
+                $ditolakCount = $dbDitolak;
+            }
+        } catch (\Throwable $e) {
+            // fallback: biarin
+        }
+
+        // ✅ pastiin variabel yang dipakai card Direvisi SELALU ada
+        $direvisiDisplay = $direvisiFileCount ?? ($direvisiCount ?? 0);
+    @endphp
 
     {{-- ===================== HEADER & FILTER (Hanya Admin) ==================== --}}
     @if($role === 'admin')
@@ -110,7 +374,6 @@
 
     {{-- ===================== MONITORING CARDS ==================== --}}
 @php
-    // Daftar lengkap semua menu
     $allMenus = [
         'monitoring'     => ['title'=>'Daftar Monitoring Proposal','count'=>$daftarProposalCount ?? 0,'route'=>'monitoring.proposalDikirim','icon'=>'bi-file-earmark-text'],
         'perlu_review'   => ['title'=>'Daftar Review Proposal','count'=>$perluDireviewCount ?? 0,'route'=>'monitoring.proposalPerluDireview','icon'=>'bi-envelope-paper'],
@@ -124,12 +387,9 @@
 
     $dashboardItems = [];
 
-   if($role === 'admin' || $role === 'reviewer') {
+    if($role === 'admin' || $role === 'reviewer') {
         $dashboardItems = $allMenus;
-    }
-
-    elseif($role === 'pengaju') {
-        // Pengaju (User) TIDAK melihat "Daftar Review" & "Sedang Direview"
+    } elseif($role === 'pengaju') {
         $dashboardItems = [
             $allMenus['monitoring'],
             $allMenus['review_selesai'],
@@ -141,7 +401,6 @@
     }
 @endphp
 
-{{-- Menentukan alignment: Jika item sedikit, kita buat ke tengah (center) --}}
 @php
     $rowAlignment = (count($dashboardItems) < 4) ? 'justify-content-center' : '';
 @endphp
@@ -212,7 +471,6 @@
     @endif
 
     {{-- ===================== PROFIL & INFORMASI ==================== --}}
-{{-- ===================== PROFIL & INFORMASI ==================== --}}
 <div class="row g-4">
     {{-- Sisi Kiri: Profil Pengguna --}}
     <div class="col-md-7">

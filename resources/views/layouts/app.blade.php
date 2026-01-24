@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    {{-- ✅ TAMBAH biar POST fetch aman --}}
+    {{-- ✅ CSRF --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('title', 'E-Hibah')</title>
@@ -34,14 +34,35 @@
         #mainContent{padding:20px; backdrop-filter: blur(10px); background-color: rgba(255,255,255,0.8); border-radius:15px; margin-top:20px;}
 
         /* Popup Proposal */
-        .popup-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5); z-index:5000; justify-content:center; align-items:center;}
+        .popup-overlay{
+            display:none;
+            position:fixed;
+            top:0;left:0;width:100%;height:100%;
+            background:transparent; /* ✅ hilangin shadow background */
+            z-index:5000;
+            justify-content:center; align-items:center;
+        }
         .popup-overlay.active{display:flex;}
         .popup-content{background:#fff;padding:20px;border-radius:12px; max-width:500px;width:90%; box-shadow:0 5px 15px rgba(0,0,0,0.3); position:relative;}
         .close-popup{position:absolute;top:10px;right:10px;font-size:1.5rem;cursor:pointer;}
 
         /* Notifikasi */
-        .notif-popup-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);justify-content:center;align-items:flex-start;z-index:4000;padding-top:60px;}
-        .notif-popup{background:#fff;border-radius:12px;width:350px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 5px 15px rgba(0,0,0,0.3);}
+        .notif-popup-overlay{
+            display:none;
+            position:fixed;
+            inset:0;
+            background:transparent; /* ✅ ga ada shadow belakang */
+            z-index:4000;
+        }
+        .notif-popup{
+            background:#fff;border-radius:12px;width:350px;max-height:80vh;overflow:hidden;
+            display:flex;flex-direction:column;
+            box-shadow:0 5px 15px rgba(0,0,0,0.3);
+            position:fixed;
+            top:0; left:0; right:auto;
+            margin:0 !important;
+            transform:none !important;
+        }
         .notif-popup.large{width:600px;max-height:90vh;}
         .notif-header{padding:10px 15px;border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;}
         .notif-list{overflow-y:auto; flex:1;}
@@ -53,7 +74,7 @@
         .notif-item.read .notif-title{ font-weight:500; }
 
         .mark-read{cursor:pointer;color:#0d6efd;font-size:0.9rem;}
-        .mark-read.disabled{color:gray; cursor:default;}
+        .mark-read.disabled{color:gray; cursor:default; pointer-events:none;}
 
         /* Kalender */
         #calendar{max-width:100%;margin:0 auto;background:#fff;border-radius:12px;}
@@ -110,14 +131,11 @@
                         @if(in_array(Auth::user()->role, ['pengaju', 'reviewer']))
                             <li><a class="dropdown-item" href="#" id="openPopupBtn">Unggah Proposal</a></li>
                             <li><a class="dropdown-item" href="{{ route('laporan.kemajuan.index') }}">Unggah Laporan Kemajuan</a></li>
-                            {{-- Menu Baru untuk Pengguna --}}
                             <li><a class="dropdown-item" href="{{ route('laporan.akhir.index') }}">Unggah Laporan Akhir</a></li>
                         @endif
 
                         @if(Auth::user()->role === 'admin')
-                            {{-- ✅ Admin: Monitoring Laporan --}}
                             <li><a class="dropdown-item" href="{{ route('laporan.kemajuan.index') }}">Monitoring Laporan Kemajuan</a></li>
-                            {{-- Menu Baru untuk Admin --}}
                             <li><a class="dropdown-item" href="{{ route('laporan.akhir.index') }}">Monitoring Laporan Akhir</a></li>
 
                             <hr class="dropdown-divider">
@@ -166,14 +184,18 @@
 
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    {{-- ✅ Bell + Badge (DIPEPETIN) --}}
+                    {{-- ✅ Bell + Badge --}}
+                    @php
+                        $bellCount = $notif_unread_count ?? 0;
+                        $bellText  = $bellCount > 99 ? '99+' : $bellCount;
+                    @endphp
                     <a id="notifBell" class="nav-link position-relative" style="cursor:pointer;">
                         <i class="bi bi-bell"></i>
 
                         <span id="notifCount"
                               class="position-absolute badge rounded-pill bg-danger"
-                              style="display:none;font-size:10px;padding:4px 6px;top:2px;right:2px;">
-                            0
+                              style="display: {{ $bellCount > 0 ? 'inline-block' : 'none' }};font-size:10px;padding:4px 6px;top:2px;right:2px;">
+                            {{ $bellText }}
                         </span>
                     </a>
                 </li>
@@ -208,7 +230,6 @@
         <span class="close-popup" id="closePopupBtn">&times;</span>
         <h5 class="fw-bold mb-3">Form Pengajuan Proposal</h5>
 
-        {{-- HANYA SATU TAG FORM DI SINI --}}
         <form action="{{ route('proposal.store') }}" method="POST" enctype="multipart/form-data" id="mainProposalForm">
             @csrf
 
@@ -218,28 +239,27 @@
             </div>
 
             <div class="mb-3">
-    <label class="form-label small fw-bold">Anggota Peneliti</label>
-    <div id="anggota-container">
-        <div class="input-group mb-2">
-            <input type="text" name="anggota[]" class="form-control" list="dosenList" placeholder="Ketik Nama Anggota...">
-            <button type="button" class="btn btn-outline-secondary disabled" style="width: 45px; opacity: 0;">
-                <i class="bi bi-trash"></i>
-            </button>
-        </div>
-    </div>
+                <label class="form-label small fw-bold">Anggota Peneliti</label>
+                <div id="anggota-container">
+                    <div class="input-group mb-2">
+                        <input type="text" name="anggota[]" class="form-control" list="dosenList" placeholder="Ketik Nama Anggota...">
+                        <button type="button" class="btn btn-outline-secondary disabled" style="width: 45px; opacity: 0;">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
 
-    <button type="button" class="btn btn-sm btn-outline-primary" id="addAnggotaBtn">
-        <i class="bi bi-plus"></i> Tambah Anggota
-    </button>
-</div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addAnggotaBtn">
+                    <i class="bi bi-plus"></i> Tambah Anggota
+                </button>
+            </div>
 
             <div class="mb-3">
                 <label class="form-label small fw-bold">Fakultas / Prodi</label>
-               <select name="fakultas_prodi" class="form-select" required>
+                <select name="fakultas_prodi" class="form-select" required>
                     <option value="" selected disabled>-- Pilih Fakultas --</option>
                     @isset($list_fakultas)
                         @foreach($list_fakultas as $fakultas)
-                            {{-- Ganti $fakultas->nama menjadi $fakultas->nama_fakultas --}}
                             <option value="{{ $fakultas->id }}">{{ $fakultas->nama_fakultas }}</option>
                         @endforeach
                     @endisset
@@ -270,6 +290,7 @@
     </div>
 </div>
 @endif
+
 <datalist id="dosenList">
     @isset($all_dosen)
         @foreach($all_dosen as $dosen)
@@ -281,43 +302,42 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // 1. LOGIKA FORMAT RUPIAH (HANYA SATU SCRIPT)
- // Gunakan versi ini saja untuk Biaya:
-const biayaDisplay = document.getElementById('biaya_display');
-const biayaHidden = document.getElementById('biaya_hidden');
+    const biayaDisplay = document.getElementById('biaya_display');
+    const biayaHidden = document.getElementById('biaya_hidden');
 
-if (biayaDisplay) {
-    biayaDisplay.addEventListener('input', function(e) {
-        let value = this.value.replace(/[^0-9]/g, '');
-        if (biayaHidden) biayaHidden.value = value;
+    if (biayaDisplay) {
+        biayaDisplay.addEventListener('input', function(e) {
+            let value = this.value.replace(/[^0-9]/g, '');
+            if (biayaHidden) biayaHidden.value = value;
 
-        if (value) {
-            const formatted = new Intl.NumberFormat('id-ID').format(value);
-            this.value = 'Rp ' + formatted;
-        } else {
-            this.value = '';
-        }
-    });
-}
+            if (value) {
+                const formatted = new Intl.NumberFormat('id-ID').format(value);
+                this.value = 'Rp ' + formatted;
+            } else {
+                this.value = '';
+            }
+        });
+    }
 
     // 2. LOGIKA TAMBAH/HAPUS ANGGOTA
     const addBtn = document.getElementById('addAnggotaBtn');
     const container = document.getElementById('anggota-container');
 
-        if (addBtn && container) {
-            addBtn.addEventListener('click', function() {
-                const count = container.querySelectorAll('input').length + 1;
-                const div = document.createElement('div');
-                div.className = 'd-flex gap-2 mb-2';
-                div.innerHTML = `
-                    <input type="text" name="anggota[]" class="form-control"
-                        list="dosenList" placeholder="Nama Anggota ${count}">
-                    <button type="button" class="btn btn-danger btn-sm remove-anggota">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                `;
-                container.appendChild(div);
-            });
-        }
+    if (addBtn && container) {
+        addBtn.addEventListener('click', function() {
+            const count = container.querySelectorAll('input').length + 1;
+            const div = document.createElement('div');
+            div.className = 'd-flex gap-2 mb-2';
+            div.innerHTML = `
+                <input type="text" name="anggota[]" class="form-control"
+                    list="dosenList" placeholder="Nama Anggota ${count}">
+                <button type="button" class="btn btn-danger btn-sm remove-anggota">
+                    <i class="bi bi-trash"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        });
+    }
 });
 
 // Script untuk mendeteksi pilihan dari datalist
@@ -328,21 +348,17 @@ document.querySelector('input[name="nama_ketua"]').addEventListener('input', fun
     for (let i = 0; i < options.length; i++) {
         if (options[i].value === val) {
             console.log("Dosen terpilih: " + val);
-            // Anda bisa menambahkan logika di sini untuk auto-fill
-            // jika datalist menyimpan atribut tambahan seperti NIDN
             break;
         }
     }
 });
 </script>
 
-
 <script>
     const biayaDisplay = document.getElementById('biaya_display');
     const biayaHidden = document.getElementById('biaya_hidden');
 
     biayaDisplay.addEventListener('keyup', function(e) {
-        // Ambil value dan hapus semua karakter selain angka
         let numberString = this.value.replace(/[^,\d]/g, '').toString();
         let split = numberString.split(',');
         let sisa = split[0].length % 3;
@@ -356,12 +372,8 @@ document.querySelector('input[name="nama_ketua"]').addEventListener('input', fun
 
         rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
 
-        // Tampilkan format rupiah di input display
         this.value = 'Rp ' + rupiah;
-
-        // Simpan angka murni ke input hidden untuk dikirim ke Controller
         biayaHidden.value = numberString.replace(/\./g, '');
-
     });
 </script>
 
@@ -380,8 +392,6 @@ document.querySelector('input[name="nama_ketua"]').addEventListener('input', fun
         </div>
     </div>
 </div>
-
-
 
 {{-- Toast File Error --}}
 <div id="toastFileError" class="toast align-items-center text-white bg-danger border-0 position-fixed" style="top:70px;right:20px;z-index:99999;" role="alert">
@@ -422,51 +432,52 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     if(closeBtn && popup) closeBtn.addEventListener("click",()=>popup.classList.remove("active"));
 
-   // ✅ LOGIKA TAMBAH/HAPUS ANGGOTA (VERSI KONSISTEN)
-        const addBtn = document.getElementById("addAnggotaBtn");
-        const anggotaContainer = document.getElementById("anggota-container");
+    // ✅ LOGIKA TAMBAH/HAPUS ANGGOTA (VERSI KONSISTEN)
+    const addBtn = document.getElementById("addAnggotaBtn");
+    const anggotaContainer = document.getElementById("anggota-container");
 
-        if (addBtn && anggotaContainer) {
-            addBtn.onclick = function() { // Menggunakan .onclick memastikan hanya ada 1 event
-                const div = document.createElement("div");
-                div.className = "input-group mb-2";
+    if (addBtn && anggotaContainer) {
+        addBtn.onclick = function() {
+            const div = document.createElement("div");
+            div.className = "input-group mb-2";
 
-                div.innerHTML = `
-                    <input type="text" name="anggota[]" class="form-control" list="dosenList" placeholder="Nama anggota">
-                    <button type="button" class="btn btn-danger remove-anggota" style="width: 45px;">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                `;
-                anggotaContainer.appendChild(div);
-            };
+            div.innerHTML = `
+                <input type="text" name="anggota[]" class="form-control" list="dosenList" placeholder="Nama anggota">
+                <button type="button" class="btn btn-danger remove-anggota" style="width: 45px;">
+                    <i class="bi bi-trash"></i>
+                </button>
+            `;
+            anggotaContainer.appendChild(div);
+        };
+    }
+
+    // Delegasi hapus yang benar
+    document.addEventListener("click", function(e) {
+        if (e.target.closest(".remove-anggota")) {
+            e.target.closest(".input-group").remove();
         }
+    });
 
-// Delegasi hapus yang benar
-document.addEventListener("click", function(e) {
-    if (e.target.closest(".remove-anggota")) {
-        e.target.closest(".input-group").remove();
-    }
-});
-
-// Delegasi klik untuk tombol hapus
-document.addEventListener("click", e => {
-    // Cari element terdekat yang punya class remove-anggota (biar ikon di dlm button jg bisa diklik)
-    const btn = e.target.closest(".remove-anggota");
-    if (btn) {
-        btn.closest(".input-group").remove();
-    }
-});
+    // Delegasi klik untuk tombol hapus
+    document.addEventListener("click", e => {
+        const btn = e.target.closest(".remove-anggota");
+        if (btn) {
+            btn.closest(".input-group").remove();
+        }
+    });
 
     // =========================
     // NOTIFIKASI (BELL + COUNT)
     // =========================
     const notifBell=document.getElementById("notifBell");
     const notifPopup=document.getElementById("notifPopup");
+    const notifBox=document.getElementById("notifBox");
     const notifList=document.getElementById("notifList");
     const notifCount=document.getElementById("notifCount");
     const markReadBtn=document.getElementById("markRead");
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const initialUnreadFromBlade = parseInt(@json($notif_unread_count ?? 0)) || 0;
+    let lastUnreadFromList = initialUnreadFromBlade;
 
     const setBadge = (count) => {
         if (!notifCount) return;
@@ -479,16 +490,28 @@ document.addEventListener("click", e => {
         notifCount.textContent = count > 99 ? "99+" : String(count);
     };
 
-    const updateNotifCount = async () => {
+    const updateNotifCount = async (force = false) => {
         try {
             const res = await fetch("{{ route('notifications.count') }}", {
                 cache: "no-store",
                 credentials: "include",
                 headers: { "Accept": "application/json" }
             });
+
+            if (!res.ok) {
+                if (force) setBadge(lastUnreadFromList);
+                return;
+            }
+
             const data = await res.json();
-            setBadge(parseInt(data.count || 0));
-        } catch(e) {}
+            const apiUnread = parseInt((data.unread ?? data.count ?? 0));
+
+            // ✅ jaga biar badge ga tiba2 ilang sebelum list kebaca
+            const finalUnread = Number.isFinite(apiUnread) ? Math.max(apiUnread, lastUnreadFromList) : lastUnreadFromList;
+            setBadge(finalUnread);
+        } catch(e) {
+            if (force) setBadge(lastUnreadFromList);
+        }
     };
 
     const loadNotifications = async () => {
@@ -498,55 +521,132 @@ document.addEventListener("click", e => {
                 credentials: "include",
                 headers: { "Accept": "application/json" }
             });
+
+            if (!res.ok) {
+                notifList.innerHTML = '<div class="text-center py-3 text-danger">Gagal memuat notifikasi.</div>';
+                return;
+            }
+
             const data = await res.json();
 
             notifList.innerHTML = data.length ? '' : '<div class="text-center py-3">Tidak ada notifikasi.</div>';
 
+            lastUnreadFromList = (data || []).filter(n => !n.is_read).length;
+            setBadge(lastUnreadFromList);
+
             data.forEach(notif => {
                 const item = document.createElement("div");
                 item.className = `notif-item ${notif.is_read ? 'read' : 'unread'}`;
-                item.innerHTML = `<div class="notif-title">${notif.title}</div><div class="small text-muted">${notif.message || ''}</div>`;
+
+                const remainHtml = notif.remaining_text
+                    ? `<div class="small text-primary mt-1">${notif.remaining_text}</div>`
+                    : '';
+
+                item.innerHTML = `
+                    <div class="notif-title">${notif.title}</div>
+                    <div class="small text-muted">${notif.message || ''}</div>
+                    ${remainHtml}
+                `;
                 notifList.appendChild(item);
             });
 
             updateNotifCount();
-        } catch(e) {}
+        } catch(e) {
+            notifList.innerHTML = '<div class="text-center py-3 text-danger">Gagal memuat notifikasi.</div>';
+            setBadge(lastUnreadFromList);
+        }
     };
 
-    updateNotifCount();
+    // ✅ posisikan popup tepat di bawah bell (sudut kanan popup nempel ke icon bell)
+    const positionNotifBox = () => {
+        if (!notifBell || !notifBox) return;
+
+        const icon = notifBell.querySelector('i.bi-bell') || notifBell;
+        const rect = icon.getBoundingClientRect();
+
+        const boxW = notifBox.offsetWidth || 350;
+        const boxH = notifBox.offsetHeight || 300;
+
+        let top = rect.bottom;
+        let left = rect.right - boxW;
+
+        if (left < 8) left = 8;
+        if (left + boxW > window.innerWidth - 8) left = window.innerWidth - boxW - 8;
+
+        if (top + boxH > window.innerHeight - 8) {
+            top = rect.top - boxH;
+            if (top < 8) top = 8;
+        }
+
+        notifBox.style.top = `${Math.round(top)}px`;
+        notifBox.style.left = `${Math.round(left)}px`;
+        notifBox.style.right = 'auto';
+    };
+
+    // ✅ badge nongol tanpa klik bell
+    setBadge(initialUnreadFromBlade);
+    updateNotifCount(true);
     setInterval(updateNotifCount, 30000);
 
-    if(notifBell) notifBell.addEventListener("click", () => {
-        notifPopup.style.display="flex";
-        loadNotifications();
+    if(notifBell) notifBell.addEventListener("click", async (e) => {
+        e.preventDefault();
+        notifPopup.style.display="block";
+        positionNotifBox();
+        await loadNotifications();
+        requestAnimationFrame(() => positionNotifBox());
     });
 
     if(notifPopup) notifPopup.addEventListener("click", e => {
         if(e.target===notifPopup) notifPopup.style.display="none";
     });
 
+    window.addEventListener('resize', () => {
+        if (notifPopup && notifPopup.style.display === 'block') positionNotifBox();
+    });
+    window.addEventListener('scroll', () => {
+        if (notifPopup && notifPopup.style.display === 'block') positionNotifBox();
+    }, true);
+
+    // ✅ MARK ALL AS READ (PAKAI ROUTE AJAX BYPASS CSRF)
     if(markReadBtn){
-        markReadBtn.addEventListener("click", async () => {
+        markReadBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
             try {
-                await fetch("{{ route('notifications.markAllAsRead') }}", {
+                const res = await fetch("{{ route('notifications.markAllAsReadAjax') }}", {
                     method: "POST",
                     credentials: "include",
                     headers: {
-                        "Content-Type": "application/json",
                         "Accept": "application/json",
-                        "X-CSRF-TOKEN": csrfToken
-                    },
-                    body: JSON.stringify({})
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
                 });
 
-                loadNotifications();
-                updateNotifCount();
-            } catch(e) {}
+                if (!res.ok) {
+                    showAlert(`Gagal menandai notifikasi dibaca (HTTP ${res.status}).`, 'danger');
+                    return;
+                }
+
+                // ✅ sukses -> set 0 dulu biar instan
+                lastUnreadFromList = 0;
+                setBadge(0);
+
+                await loadNotifications();
+
+                // setelah mark read, biar count ga ke-max balik ke angka lama
+                // (karena lastUnreadFromList sudah 0)
+                await updateNotifCount(true);
+
+                requestAnimationFrame(() => positionNotifBox());
+            } catch(e) {
+                showAlert('Gagal menandai notifikasi dibaca.', 'danger');
+            }
         });
     }
 
     // ==========================================
-    // ✅ NOTIF TENGGAT MUNCUL SAAT LOGIN
+    // ✅ NOTIF TENGGAT MUNCUL SAAT LOGIN (TETAP)
     // ==========================================
     const showDeadlinePopup = (title, message) => {
         if (!alertPlaceholder) return;

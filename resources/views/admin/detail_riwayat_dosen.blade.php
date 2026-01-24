@@ -3,113 +3,161 @@
 @section('content')
 <div class="container mt-4">
 
-    {{-- ===================== HEADER & TOOLS ==================== --}}
+    {{-- ===================== HEADER ==================== --}}
     <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm border">
         <div>
-            <h4 class="fw-bold mb-0 text-dark">Indeks Produktivitas Dosen</h4>
-            <p class="text-muted mb-0 small">Analisis riwayat hibah dan efektivitas usulan penelitian.</p>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('admin.riwayatDosen') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Kembali
+                </a>
+                <h4 class="fw-bold mb-0 text-dark">Detail Produktivitas Dosen</h4>
+            </div>
+            <p class="text-muted mb-0 small">Ringkasan dan daftar pengajuan hibah untuk dosen terpilih.</p>
         </div>
-        <div class="d-flex gap-2">
-            <form action="{{ route('admin.riwayatDosen') }}" method="GET" class="d-flex gap-2">
-                <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari Nama / NIDN..." value="{{ request('search') }}">
-                <button type="submit" class="btn btn-sm btn-primary">
-                    <i class="bi bi-search"></i>
-                </button>
-            </form>
-            <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-printer me-1"></i> Cetak Laporan
-            </button>
+        <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-printer me-1"></i> Cetak
+        </button>
+    </div>
+
+    {{-- ===================== PROFIL DOSEN ==================== --}}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body d-flex align-items-center gap-3">
+            <div class="avatar-sm bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center"
+                 style="width:46px;height:46px;">
+                {{ strtoupper(substr($dosen->name, 0, 1)) }}
+            </div>
+
+            <div class="flex-grow-1">
+                <div class="fw-bold text-dark" style="font-size: 1.1rem;">{{ $dosen->name }}</div>
+                <div class="text-muted small">
+                    NIDN: <span class="fw-semibold">{{ $dosen->nidn ?? 'N/A' }}</span>
+                    @if(!empty($dosen->jabatan))
+                        • Jabatan: <span class="fw-semibold">{{ $dosen->jabatan }}</span>
+                    @endif
+                    @if(!empty($dosen->program_studi))
+                        • Prodi: <span class="fw-semibold">{{ $dosen->program_studi }}</span>
+                    @endif
+                    @if(!empty($dosen->fakultas))
+                        • Fakultas: <span class="fw-semibold">{{ $dosen->fakultas }}</span>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 
     {{-- ===================== SUMMARY STATS ==================== --}}
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm p-3 bg-white border-start border-primary border-4">
-                <small class="text-muted fw-bold text-uppercase">Rata-rata Dana / Dosen</small>
-                <h3 class="fw-bold mb-0 text-primary">
-                    {{-- FORMAT RUPIAH --}}
-                    Rp {{ number_format($riwayatDosen->avg('total_dana') ?? 0, 0, ',', '.') }}
-                </h3>
+                <small class="text-muted fw-bold text-uppercase">Total Pengajuan</small>
+                <h3 class="fw-bold mb-0 text-primary">{{ number_format($stats['totalPengajuan'] ?? 0, 0, ',', '.') }}</h3>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm p-3 bg-white border-start border-success border-4">
-                <small class="text-muted fw-bold text-uppercase">Dosen Paling Aktif</small>
-                @php $topDosen = $riwayatDosen->sortByDesc('total_pengajuan')->first(); @endphp
-                <h4 class="fw-bold mb-0 text-dark">{{ $topDosen->name ?? '-' }}</h4>
-                <div class="x-small text-success fw-bold">{{ $topDosen->total_pengajuan ?? 0 }} Total Pengajuan</div>
+                <small class="text-muted fw-bold text-uppercase">Disetujui</small>
+                <h3 class="fw-bold mb-0 text-success">{{ number_format($stats['totalDisetujui'] ?? 0, 0, ',', '.') }}</h3>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 bg-white border-start border-danger border-4">
+                <small class="text-muted fw-bold text-uppercase">Ditolak</small>
+                <h3 class="fw-bold mb-0 text-danger">{{ number_format($stats['totalDitolak'] ?? 0, 0, ',', '.') }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm p-3 bg-white border-start border-warning border-4">
-                <small class="text-muted fw-bold text-uppercase">Total Anggaran Terpakai</small>
-                <h3 class="fw-bold mb-0 text-dark">
-                    {{-- FORMAT RUPIAH --}}
-                    Rp {{ number_format($riwayatDosen->sum('total_dana') ?? 0, 0, ',', '.') }}
-                </h3>
+                <small class="text-muted fw-bold text-uppercase">Direvisi</small>
+                <h3 class="fw-bold mb-0 text-warning">{{ number_format($stats['totalDirevisi'] ?? 0, 0, ',', '.') }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-3 bg-white border-start border-dark border-4">
+                <small class="text-muted fw-bold text-uppercase">Total Dana Terserap (Disetujui)</small>
+                <h3 class="fw-bold mb-0 text-dark">Rp {{ number_format($stats['totalDana'] ?? 0, 0, ',', '.') }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-3 bg-white border-start border-info border-4">
+                <small class="text-muted fw-bold text-uppercase">Success Rate</small>
+                @php $sr = $stats['successRate'] ?? 0; @endphp
+                <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height: 8px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ $sr }}%"></div>
+                    </div>
+                    <div class="fw-bold text-info" style="min-width:70px;">{{ number_format($sr, 1) }}%</div>
+                </div>
+                <div class="text-muted x-small mt-1">
+                    (Disetujui / Total Pengajuan) × 100
+                </div>
             </div>
         </div>
     </div>
 
-    {{-- ===================== TABEL RIWAYAT & PRODUKTIVITAS ==================== --}}
+    {{-- ===================== TABEL PROPOSAL DOSEN ==================== --}}
     <div class="card border-0 shadow-sm overflow-hidden">
         <div class="card-header bg-white py-3">
-            <h6 class="fw-bold mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Ranking Produktivitas Dosen</h6>
+            <h6 class="fw-bold mb-0">
+                <i class="bi bi-folder2-open me-2 text-primary"></i>Daftar Proposal Dosen
+            </h6>
         </div>
+
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-4" style="width: 30%;">Dosen & NIDN</th>
-                        <th>Fakultas</th>
-                        <th class="text-center">Total Aju</th>
-                        <th class="text-center">Diterima</th>
-                        <th class="text-center">Success Rate</th>
-                        <th class="text-end pe-4">Dana Terserap</th>
+                        <th class="ps-4">Judul</th>
+                        <th>Periode</th>
+                        <th>Status</th>
+                        <th>Status Pendanaan</th>
+                        <th class="text-end">Biaya</th>
+                        <th class="text-end pe-4">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($riwayatDosen as $dosen)
-                        @php
-                            $rate = $dosen->total_pengajuan > 0 ? ($dosen->total_disetujui / $dosen->total_pengajuan) * 100 : 0;
-                            $rateColor = $rate >= 70 ? 'bg-success' : ($rate >= 40 ? 'bg-warning' : 'bg-danger');
-                        @endphp
+                    @forelse($proposals as $p)
                         <tr>
                             <td class="ps-4">
-                                <a href="{{ route('admin.dosen.detail', $dosen->id) }}" class="text-decoration-none d-flex align-items-center">
-                                    <div class="avatar-sm me-3 bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center">
-                                        {{ strtoupper(substr($dosen->name, 0, 1)) }}
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-dark">{{ $dosen->name }}</div>
-                                        <div class="text-muted x-small">ID: {{ $dosen->nidn ?? 'N/A' }}</div>
-                                    </div>
-                                </a>
-                            </td>
-                            <td><span class="small text-secondary">{{ $dosen->fakultas ?? '-' }}</span></td>
-                            <td class="text-center fw-bold">{{ number_format($dosen->total_pengajuan, 0, ',', '.') }}</td>
-                            <td class="text-center">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3">
-                                    {{ number_format($dosen->total_disetujui, 0, ',', '.') }}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex align-items-center justify-content-center gap-2">
-                                    <div class="progress" style="width: 60px; height: 6px;">
-                                        <div class="progress-bar {{ $rateColor }}" role="progressbar" style="width: {{ $rate }}%"></div>
-                                    </div>
-                                    <span class="small fw-bold">{{ number_format($rate, 1) }}%</span>
+                                <div class="fw-bold text-dark">{{ $p->judul }}</div>
+                                <div class="text-muted x-small">
+                                    Fakultas/Prodi: {{ $p->fakultas->nama_fakultas ?? '-' }}
                                 </div>
                             </td>
+                            <td>{{ $p->periode ?? '-' }}</td>
+                            <td>
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                    {{ $p->status ?? '-' }}
+                                </span>
+                            </td>
+                            <td>
+                                @php
+                                    $sp = $p->status_pendanaan ?? '-';
+                                    $cls = 'bg-secondary-subtle text-secondary border border-secondary-subtle';
+                                    if ($sp === 'Disetujui') $cls = 'bg-success-subtle text-success border border-success-subtle';
+                                    elseif ($sp === 'Ditolak') $cls = 'bg-danger-subtle text-danger border border-danger-subtle';
+                                    elseif ($sp === 'Direvisi') $cls = 'bg-warning-subtle text-warning border border-warning-subtle';
+                                @endphp
+                                <span class="badge {{ $cls }}">{{ $sp }}</span>
+                            </td>
+                            <td class="text-end">
+                                Rp {{ number_format($p->biaya ?? 0, 0, ',', '.') }}
+                            </td>
                             <td class="text-end pe-4">
-                                {{-- FORMAT RUPIAH --}}
-                                <div class="fw-bold text-primary">Rp {{ number_format($dosen->total_dana ?? 0, 0, ',', '.') }}</div>
+                                <a href="{{ route('proposal.tinjau', $p->id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Tinjau
+                                </a>
+                                <a href="{{ route('proposal.download', $p->id) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-download"></i> Unduh
+                                </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted small">Tidak ada data dosen ditemukan.</td>
+                            <td colspan="6" class="text-center py-5 text-muted small">
+                                Belum ada proposal untuk dosen ini.
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -117,13 +165,5 @@
         </div>
     </div>
 
-    {{-- KETERANGAN --}}
-    <div class="mt-3 bg-light p-3 rounded border">
-        <p class="mb-0 x-small text-muted">
-            <strong>Catatan:</strong>
-            Success Rate dihitung dari persentase proposal yang berstatus <b>Disetujui</b> dibandingkan total proposal yang pernah diajukan.
-            Gunakan tombol <b>Cari</b> untuk memfilter dosen spesifik atau cetak sebagai laporan fisik.
-        </p>
-    </div>
 </div>
 @endsection

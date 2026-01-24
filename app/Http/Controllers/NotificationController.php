@@ -7,21 +7,78 @@ use App\Models\User;
 use App\Models\Proposal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log; // ✅ tambah ini (buat safety)
+use Illuminate\Support\Facades\Log;
 use App\Helpers\NotificationHelper;
 use Carbon\Carbon;
 
 class NotificationController extends Controller
 {
     /**
-     * ✅ Helper: generate / update notif deadline (H-3/H-2/H-1) untuk reviewer tertentu
-     * Dipanggil dari web request (count/fetch) => TANPA console/scheduler
+     * Format sisa waktu:
+     * - >= 24 jam => "Tinggal X hari lagi" (pakai diffInDays, bukan ceil biar lebih natural)
+     * - <  24 jam => "Tinggal X jam lagi"
+     */
+    private static function remainingText(Carbon $now, Carbon $deadline, string $tz = 'Asia/Jakarta'): string
+    {
+        $nowT = $now->copy()->timezone($tz);
+        $dlT  = $deadline->copy()->timezone($tz);
+
+        $secondsLeft = $nowT->diffInSeconds($dlT, false);
+
+        if ($secondsLeft <= 0) return 'Tenggat sudah lewat';
+
+        if ($secondsLeft >= 86400) {
+            $days = (int) $nowT->diffInDays($dlT, false);
+            if ($days < 1) $days = 1;
+            return "Tinggal {$days} hari lagi";
+        }
+
+        $hours = (int) $nowT->diffInHours($dlT, false);
+        if ($hours < 1) $hours = 1;
+        return "Tinggal {$hours} jam lagi";
+    }
+
+    /**
+     * Ambil deadline dari notif.message (biar sesuai yang tampil di bell).
+     * Support format:
+     *  - "Tenggat penilaian: 24 Jan 2026 05:59 WIB"
+     *  - "harus dinilai sebelum 24 Jan 2026 05:59 WIB"
+     */
+    private static function extractDeadlineFromMessage(?string $message, string $tz = 'Asia/Jakarta'): ?Carbon
+    {
+        if (!$message) return null;
+
+        $patterns = [
+            '/Tenggat\s+penilaian\s*:\s*([0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4}\s+[0-9]{2}:[0-9]{2})\s*WIB/i',
+            '/sebelum\s+([0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4}\s+[0-9]{2}:[0-9]{2})\s*WIB/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $message, $m)) {
+                $dt = trim($m[1]);
+                try {
+                    return Carbon::createFromFormat('d M Y H:i', $dt, $tz);
+                } catch (\Throwable $e) {
+                    return null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Generate notif reviewer:
+     * 1) "Tugas Review Proposal" (info) selalu ada untuk tiap penugasan aktif
+     * 2) "Tenggat review ..." (warning) H-3/H-2/H-1, dan kalau <24 jam jadi jam
+     *
+     * ✅ IMPORTANT FIX:
+     * Saat dedupe, selalu prioritas simpan notif yang is_read = 0 (unread),
+     * supaya badge tidak tiba-tiba jadi 0.
      */
     private static function generateDeadlineNotifsForReviewer(int $reviewerId): void
     {
-        $tz = 'Asia/Jakarta';
-
-        // ✅ FIX: now langsung WIB (jangan now()->setTimezone, itu sering bikin shift kalau app timezone beda)
+        $tz  = 'Asia/Jakarta';
         $now = Carbon::now($tz);
 
         $proposals = Proposal::query()
@@ -29,7 +86,6 @@ class NotificationController extends Controller
             ->whereNotNull('review_deadline')
             ->whereIn('status', ['Dikirim', 'Perlu Direview', 'Sedang Direview'])
             ->whereHas('reviewers', function ($q) use ($reviewerId) {
-                // ✅ FIX: tetap pakai users.id biar gak ambigu
                 $q->where('users.id', $reviewerId);
             })
             ->get();
@@ -37,112 +93,245 @@ class NotificationController extends Controller
         foreach ($proposals as $proposal) {
             if (!$proposal->review_deadline) continue;
 
-            // ✅ FIX: parse deadline langsung WIB (bukan parse dulu baru setTimezone)
-            $deadline = Carbon::parse($proposal->review_deadline, $tz);
+            $deadline = ($proposal->review_deadline instanceof Carbon)
+                ? $proposal->review_deadline->copy()->timezone($tz)
+                : Carbon::parse($proposal->review_deadline, $tz);
 
-            $existing = Notification::where('user_id', $reviewerId)
+            $secondsLeft = $now->diffInSeconds($deadline, false);
+
+            // ==============================
+            // 1) NOTIF "TUGAS REVIEW" (INFO)
+            // ==============================
+            if ($deadline->gte($now)) {
+                $remainText  = self::remainingText($now, $deadline, $tz);
+                $taskTitle   = 'Tugas Review Proposal';
+                $taskMessage = 'Anda ditugaskan mereview proposal "' . ($proposal->judul ?? '-') . '". ' .
+                    'Tenggat penilaian: ' . $deadline->translatedFormat('d M Y H:i') . ' WIB. ' .
+                    $remainText . '.';
+
+                $taskBaseQuery = Notification::where('user_id', $reviewerId)
+                    ->where('proposal_id', $proposal->id)
+                    ->where('type', 'info')
+                    ->where('title', $taskTitle);
+
+                // ✅ pilih yang UNREAD dulu, baru fallback yang mana aja
+                $existingTask = (clone $taskBaseQuery)
+                    ->where('is_read', false)
+                    ->orderBy('id', 'asc')
+                    ->first();
+
+                if (!$existingTask) {
+                    $existingTask = (clone $taskBaseQuery)
+                        ->orderBy('id', 'asc')
+                        ->first();
+                }
+
+                if ($existingTask) {
+                    // ✅ hapus duplikat tapi jangan sampai unread hilang
+                    (clone $taskBaseQuery)->where('id', '!=', $existingTask->id)->delete();
+
+                    // update message kalau berubah (tanpa maksa jadi unread)
+                    if (($existingTask->message ?? '') !== $taskMessage) {
+                        $existingTask->update(['message' => $taskMessage]);
+                    }
+                } else {
+                    Notification::create([
+                        'user_id'     => $reviewerId,
+                        'proposal_id' => $proposal->id,
+                        'title'       => $taskTitle,
+                        'message'     => $taskMessage,
+                        'type'        => 'info',
+                        'is_read'     => false,
+                    ]);
+                }
+            }
+
+            // ==========================================
+            // 2) NOTIF "TENGGAT REVIEW" (WARNING H-3/2/1)
+            // ==========================================
+            $warnBaseQuery = Notification::where('user_id', $reviewerId)
                 ->where('proposal_id', $proposal->id)
                 ->where('type', 'warning')
-                ->where('title', 'like', 'Tenggat review%')
-                ->orderByDesc('created_at')
+                ->where('title', 'like', 'Tenggat review%');
+
+            // ✅ pilih yang UNREAD dulu, baru fallback
+            $existingWarning = (clone $warnBaseQuery)
+                ->where('is_read', false)
+                ->orderBy('id', 'asc')
                 ->first();
 
+            if (!$existingWarning) {
+                $existingWarning = (clone $warnBaseQuery)
+                    ->orderBy('id', 'asc')
+                    ->first();
+            }
+
+            if ($existingWarning) {
+                (clone $warnBaseQuery)->where('id', '!=', $existingWarning->id)->delete();
+            }
+
+            // lewat deadline => warning dihapus
             if ($deadline->lt($now)) {
-                if ($existing) $existing->delete();
+                if ($existingWarning) $existingWarning->delete();
                 continue;
             }
 
-            // ✅ FIX: hitung H-3/H-2/H-1 stabil berdasarkan tanggal WIB
+            // trigger warning berdasarkan H-3/H-2/H-1 (stabil pakai startOfDay WIB)
             $daysLeft = $now->copy()->startOfDay()->diffInDays($deadline->copy()->startOfDay(), false);
 
             if (!in_array($daysLeft, [3, 2, 1], true)) {
-                if ($existing) $existing->delete();
+                if ($existingWarning) $existingWarning->delete();
                 continue;
             }
 
-            $title = "Tenggat review {$daysLeft} hari lagi";
-            $message = 'Proposal "' . ($proposal->judul ?? '-') . '" harus dinilai sebelum '
-                . $deadline->translatedFormat('d M Y H:i') . ' WIB.';
+            $remainText = self::remainingText($now, $deadline, $tz);
 
-            if ($existing) {
-                if ($existing->title !== $title || $existing->message !== $message) {
-                    $existing->update([
-                        'title'   => $title,
-                        'message' => $message,
+            // title warning jam kalau <24 jam
+            if ($secondsLeft > 0 && $secondsLeft < 86400) {
+                $hoursLeft = (int) $now->diffInHours($deadline, false);
+                if ($hoursLeft < 1) $hoursLeft = 1;
+                $warnTitle = "Tenggat review tinggal {$hoursLeft} jam lagi";
+            } else {
+                $warnTitle = "Tenggat review {$daysLeft} hari lagi";
+            }
+
+            $warnMessage = 'Proposal "' . ($proposal->judul ?? '-') . '" harus dinilai sebelum '
+                . $deadline->translatedFormat('d M Y H:i') . ' WIB. '
+                . $remainText . '.';
+
+            if ($existingWarning) {
+                if ($existingWarning->title !== $warnTitle || $existingWarning->message !== $warnMessage) {
+                    $existingWarning->update([
+                        'title'   => $warnTitle,
+                        'message' => $warnMessage,
                         'type'    => 'warning',
+                        // ✅ jangan ubah jadi read; kalau user belum baca, tetep unread
+                        // tapi kalau notifnya memang warning dan berubah hari->jam, biar muncul badge lagi:
                         'is_read' => false,
                     ]);
                 }
-                continue;
+            } else {
+                Notification::create([
+                    'user_id'     => $reviewerId,
+                    'proposal_id' => $proposal->id,
+                    'title'       => $warnTitle,
+                    'message'     => $warnMessage,
+                    'type'        => 'warning',
+                    'is_read'     => false,
+                ]);
             }
-
-            Notification::create([
-                'user_id'     => $reviewerId,
-                'proposal_id' => $proposal->id,
-                'title'       => $title,
-                'message'     => $message,
-                'type'        => 'warning',
-                'is_read'     => false,
-            ]);
         }
     }
 
     public function count()
     {
-        // ✅ jangan sampai deadline generator bikin bell kosong kalau error
+        if (!Auth::check()) {
+            return response()->json([
+                'count'  => 0,
+                'unread' => 0,
+                'total'  => 0,
+            ]);
+        }
+
+        // ✅ FIX: jangan pakai Auth::id() (bisa username), pakai users.id
+        $uid = (int) (Auth::user()->id ?? 0);
+
         if (Auth::user()->role === 'reviewer') {
             try {
-                self::generateDeadlineNotifsForReviewer(Auth::id());
+                self::generateDeadlineNotifsForReviewer($uid);
             } catch (\Throwable $e) {
                 Log::error('deadline notif error (count): ' . $e->getMessage());
             }
         }
 
-        $count = Notification::where('user_id', Auth::id())
+        $unread = Notification::where('user_id', $uid)
             ->where('is_read', false)
             ->count();
 
-        return response()->json(['count' => $count]);
+        $total = Notification::where('user_id', $uid)->count();
+
+        return response()->json([
+            'count'  => $unread,
+            'unread' => $unread,
+            'total'  => $total,
+        ]);
     }
 
-   public function fetch()
-{
-    // 1. Pastikan User Login
-    if (!Auth::check()) {
-        return response()->json([]);
-    }
-
-    $user = Auth::user();
-
-    // 2. Jalankan logika khusus Reviewer jika memang dia reviewer
-    if ($user->role === 'reviewer') {
-        try {
-            self::generateDeadlineNotifsForReviewer($user->id);
-        } catch (\Throwable $e) {
-            Log::error('deadline notif error (fetch): ' . $e->getMessage());
+    public function fetch()
+    {
+        if (!Auth::check()) {
+            return response()->json([]);
         }
+
+        $user = Auth::user();
+        $uid  = (int) ($user->id ?? 0);
+
+        if ($user->role === 'reviewer') {
+            try {
+                self::generateDeadlineNotifsForReviewer($uid);
+            } catch (\Throwable $e) {
+                Log::error('deadline notif error (fetch): ' . $e->getMessage());
+            }
+        }
+
+        $notifications = Notification::where('user_id', $uid)
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get();
+
+        // fallback map deadline dari proposal (kalau message gak ada deadline)
+        $proposalIds = $notifications->pluck('proposal_id')->filter()->unique()->values();
+        $proposalMap = [];
+
+        if ($proposalIds->count() > 0) {
+            $proposalMap = Proposal::whereIn('id', $proposalIds->all())
+                ->get(['id', 'review_deadline'])
+                ->keyBy('id')
+                ->all();
+        }
+
+        $tz  = 'Asia/Jakarta';
+        $now = Carbon::now($tz);
+
+        $notifications->transform(function ($notif) use ($proposalMap, $tz, $now) {
+            if (empty($notif->title)) {
+                $notif->title = 'Pemberitahuan Sistem';
+            }
+
+            // ✅ utama: ambil deadline dari message biar sesuai yang tampil
+            $deadline = self::extractDeadlineFromMessage($notif->message, $tz);
+
+            // ✅ fallback: ambil dari proposal.review_deadline
+            if (!$deadline && !empty($notif->proposal_id) && isset($proposalMap[$notif->proposal_id])) {
+                $p = $proposalMap[$notif->proposal_id];
+                if (!empty($p->review_deadline)) {
+                    $deadline = ($p->review_deadline instanceof Carbon)
+                        ? $p->review_deadline->copy()->timezone($tz)
+                        : Carbon::parse($p->review_deadline, $tz);
+                }
+            }
+
+            if ($deadline) {
+                $notif->remaining_text = self::remainingText($now, $deadline, $tz);
+                $notif->deadline_iso   = $deadline->toIso8601String();
+            }
+
+            return $notif;
+        });
+
+        return response()->json($notifications);
     }
 
-    // 3. AMBIL SEMUA NOTIFIKASI (Baik pengaju maupun reviewer)
-    // Kita hapus filter yang mungkin menghambat
-    $notifications = Notification::where('user_id', $user->id)
-        ->orderBy('created_at', 'desc')
-        ->limit(50)
-        ->get();
-
-    // 4. Transform data agar tidak ada title yang kosong
-    $notifications->transform(function ($notif) {
-        if (empty($notif->title)) {
-            $notif->title = 'Pemberitahuan Sistem';
-        }
-        return $notif;
-    });
-
-    return response()->json($notifications);
-}
     public function markAllAsRead()
     {
-        Notification::where('user_id', Auth::id())
+        if (!Auth::check()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
+        }
+
+        // ✅ FIX: jangan pakai Auth::id() (bisa username), pakai users.id
+        $uid = (int) (Auth::user()->id ?? 0);
+
+        Notification::where('user_id', $uid)
             ->where('is_read', false)
             ->update(['is_read' => true]);
 
@@ -154,18 +343,25 @@ class NotificationController extends Controller
 
     public function deadlineCheck()
     {
+        if (!Auth::check()) {
+            return response()->json(['popups' => []]);
+        }
+
         if (Auth::user()->role !== 'reviewer') {
             return response()->json(['popups' => []]);
         }
 
+        // ✅ FIX: jangan pakai Auth::id() (bisa username), pakai users.id
+        $uid = (int) (Auth::user()->id ?? 0);
+
         try {
-            self::generateDeadlineNotifsForReviewer(Auth::id());
+            self::generateDeadlineNotifsForReviewer($uid);
         } catch (\Throwable $e) {
             Log::error('deadline notif error (deadlineCheck): ' . $e->getMessage());
             return response()->json(['popups' => []]);
         }
 
-        $items = Notification::where('user_id', Auth::id())
+        $items = Notification::where('user_id', $uid)
             ->where('is_read', false)
             ->where('type', 'warning')
             ->where('title', 'like', 'Tenggat review%')
@@ -281,5 +477,4 @@ class NotificationController extends Controller
             'warning'
         );
     }
-
 }

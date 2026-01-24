@@ -26,6 +26,70 @@
     }
 </style>
 
+@php
+    /**
+     * ✅ FIX: Kalau halaman "Disetujui" kosong padahal di "Review Selesai" ada yang dipilih Disetujui,
+     * biasanya karena yang diubah itu kolom "status pendanaan", bukan kolom "status".
+     *
+     * Jadi: kalau $proposals kosong, kita fallback query ulang pakai patokan:
+     * - status = 'Disetujui'
+     * - ATAU status_pendanaan = 'Disetujui' (dan beberapa kemungkinan nama kolom lain)
+     */
+
+    $authUser = auth()->user();
+    $currentRole = $role ?? ($authUser->role ?? null);
+
+    // pastiin $proposals ada
+    $proposals = $proposals ?? collect();
+
+    $isEmpty = false;
+    if (is_object($proposals) && method_exists($proposals, 'count')) {
+        $isEmpty = ($proposals->count() == 0);
+    } else {
+        $isEmpty = (count($proposals) == 0);
+    }
+
+    if ($isEmpty) {
+        $pendanaanCols = [
+            'status_pendanaan',
+            'status_pendanaan_admin',
+            'status_pendanaan_final',
+            'keputusan_pendanaan',
+            'status_keputusan',
+        ];
+
+        $q = \App\Models\Proposal::query()
+            ->with(['user', 'reviewers'])
+            ->where(function ($qq) use ($pendanaanCols) {
+                // patokan lama (kalau memang ada)
+                $qq->where('status', 'Disetujui');
+
+                // patokan baru: status pendanaan = Disetujui (cek hanya kalau kolom ada)
+                foreach ($pendanaanCols as $col) {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('proposals', $col)) {
+                        $qq->orWhere($col, 'Disetujui');
+                    }
+                }
+            });
+
+        // filter sesuai role (biar konsisten)
+        if ($currentRole === 'reviewer') {
+            $q->whereHas('reviewers', function ($r) use ($authUser) {
+                $r->where('users.id', $authUser->id);
+            });
+        } elseif ($currentRole !== 'admin') {
+            $q->where(function ($u) use ($authUser) {
+                $u->where('user_id', $authUser->id);
+                if (!empty($authUser->username)) {
+                    $u->orWhere('user_id', $authUser->username);
+                }
+            });
+        }
+
+        $proposals = $q->latest()->get();
+    }
+@endphp
+
 <div class="container mt-4">
 
     {{-- TITLE --}}
@@ -63,7 +127,23 @@
                         $judul    = $proposal->judul ?? '-';
                         $tanggal  = $proposal->created_at?->format('d M Y') ?? '-';
                         $reviewer = optional($proposal->reviewers ?? collect())->pluck('name')->implode(', ') ?: '-';
-                        $status   = $proposal->status ?? '-';
+
+                        // ✅ tampilkan status yang benar:
+                        // kalau ada status_pendanaan (atau kolom variasi), pakai itu; kalau tidak, fallback ke status
+                        $status = $proposal->status ?? '-';
+                        $pendanaanCols = [
+                            'status_pendanaan',
+                            'status_pendanaan_admin',
+                            'status_pendanaan_final',
+                            'keputusan_pendanaan',
+                            'status_keputusan',
+                        ];
+                        foreach ($pendanaanCols as $col) {
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('proposals', $col) && !empty($proposal->{$col})) {
+                                $status = $proposal->{$col};
+                                break;
+                            }
+                        }
                     @endphp
 
                     <tr>
